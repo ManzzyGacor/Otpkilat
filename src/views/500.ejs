@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Error - KilatOTP</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
+  <div class="text-center max-w-md w-full bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-800">
+    <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl font-bold">500</div>
+    <h1 class="text-2xl font-extrabold mb-2">Terjadi Kesalahan Server</h1>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-8"><%= typeof error !== 'undefined' ? error : 'Maaf, sistem sedang mengalami kendala teknis sementara.' %></p>
+    <a href="/dashboard" class="inline-block w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/25 transition-all">Kembali ke Beranda</a>
+  </div>
+</body>
+</html>
