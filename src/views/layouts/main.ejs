@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title><%- typeof title !== 'undefined' ? title + ' - KilatOTP' : 'KilatOTP' %></title>
+  <link rel="stylesheet" href="/css/output.css">
+  <script>
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col font-sans transition-colors duration-300">
+  
+  <%- include('../partials/toast') %>
+
+  <!-- Top Navigation untuk Desktop -->
+  <header class="hidden md:flex bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16 items-center justify-between px-8 sticky top-0 z-40">
+    <div class="flex items-center space-x-8">
+      <h1 class="text-xl font-bold text-accent">KilatOTP</h1>
+      <nav class="flex space-x-6">
+        <a href="/dashboard" class="text-sm font-medium hover:text-accent transition-colors">Home</a>
+        <a href="/deposit" class="text-sm font-medium hover:text-accent transition-colors">Deposit</a>
+        <a href="/order" class="text-sm font-medium hover:text-accent transition-colors">Order</a>
+        <a href="/history" class="text-sm font-medium hover:text-accent transition-colors">Riwayat</a>
+      </nav>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span class="text-sm font-medium border border-gray-200 dark:border-gray-700 rounded-full px-4 py-1.5 shadow-sm">
+        Saldo: <span id="desktopBalance" class="text-accent font-bold">Rp...</span>
+      </span>
+      <a href="/profile" class="flex items-center space-x-2">
+        <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+          <img src="<%= typeof userAvatar !== 'undefined' ? userAvatar : 'https://ui-avatars.com/api/?name=User&background=random' %>" alt="Avatar" class="w-full h-full object-cover">
+        </div>
+      </a>
+    </div>
+  </header>
+
+  <!-- Konten Utama dengan padding bottom untuk menghindari bottom-nav di mobile -->
+  <main class="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
+    <%- body %>
+  </main>
+
+  <%- include('../partials/bottom-nav') %>
+
+</body>
+</html>

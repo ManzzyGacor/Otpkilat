@@ -1,0 +1,95 @@
+<div class="max-w-4xl mx-auto space-y-6">
+  <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h2 class="text-xl font-bold mb-6">Riwayat Akun</h2>
+
+    <!-- Tabs Navigation -->
+    <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+      <button onclick="switchTab('orders')" id="tab-orders" class="px-4 py-3 font-medium text-sm text-accent border-b-2 border-accent transition-colors">
+        Pesanan OTP
+      </button>
+      <button onclick="switchTab('transactions')" id="tab-transactions" class="px-4 py-3 font-medium text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border-b-2 border-transparent transition-colors">
+        Mutasi Saldo
+      </button>
+    </div>
+
+    <!-- Content: Orders -->
+    <div id="content-orders" class="space-y-4">
+      <% if (orders && orders.length > 0) { %>
+        <% orders.forEach(function(order) { %>
+          <div class="p-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <div class="flex items-center space-x-2 mb-1">
+                <span class="text-xs font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 uppercase"><%= order.service %></span>
+                <span class="text-xs text-gray-500"><%= order.country %></span>
+              </div>
+              <h3 class="font-bold text-gray-800 dark:text-gray-100 tracking-wider"><%= order.phoneNumber %></h3>
+              <p class="text-xs text-gray-400 mt-1">ID: <%= order.orderId %> | <%= new Date(order.createdAt).toLocaleString('id-ID') %></p>
+            </div>
+            <div class="text-left md:text-right">
+              <% if (order.status === 'completed' || order.status === 'received') { %>
+                <div class="text-sm font-bold text-green-600 dark:text-green-400 mb-1">
+                  OTP: <%= order.otpCode ? order.otpCode : 'Menunggu...' %>
+                </div>
+              <% } %>
+              <div>
+                <% if (order.status === 'completed') { %>
+                  <span class="text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Selesai</span>
+                <% } else if (order.status === 'canceled') { %>
+                  <span class="text-xs font-medium px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Batal / Refund</span>
+                <% } else { %>
+                  <span class="text-xs font-medium px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">Aktif</span>
+                <% } %>
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300 ml-2">Rp<%= order.sellingPrice.toLocaleString('id-ID') %></span>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <div class="text-center py-8 text-gray-500 text-sm">Belum ada riwayat pesanan nomor.</div>
+      <% } %>
+    </div>
+
+    <!-- Content: Transactions -->
+    <div id="content-transactions" class="space-y-4 hidden">
+      <% if (transactions && transactions.length > 0) { %>
+        <% transactions.forEach(function(tx) { %>
+          <div class="p-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <p class="text-sm font-semibold text-gray-800 dark:text-gray-200"><%= tx.description %></p>
+              <p class="text-xs text-gray-400 mt-1">Ref: <%= tx.referenceId %> | <%= new Date(tx.createdAt).toLocaleString('id-ID') %></p>
+            </div>
+            <div class="text-left md:text-right">
+              <div class="text-sm font-bold <%= tx.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' %>">
+                <%= tx.amount > 0 ? '+' : '' %>Rp<%= Math.abs(tx.amount).toLocaleString('id-ID') %>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">Saldo Akhir: Rp<%= tx.balanceAfter.toLocaleString('id-ID') %></div>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <div class="text-center py-8 text-gray-500 text-sm">Belum ada riwayat mutasi saldo.</div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(tab) {
+    const btnOrders = document.getElementById('tab-orders');
+    const btnTx = document.getElementById('tab-transactions');
+    const contentOrders = document.getElementById('content-orders');
+    const contentTx = document.getElementById('content-transactions');
+
+    if (tab === 'orders') {
+      btnOrders.className = "px-4 py-3 font-medium text-sm text-accent border-b-2 border-accent transition-colors";
+      btnTx.className = "px-4 py-3 font-medium text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border-b-2 border-transparent transition-colors";
+      contentOrders.classList.remove('hidden');
+      contentTx.classList.add('hidden');
+    } else {
+      btnTx.className = "px-4 py-3 font-medium text-sm text-accent border-b-2 border-accent transition-colors";
+      btnOrders.className = "px-4 py-3 font-medium text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 border-b-2 border-transparent transition-colors";
+      contentTx.classList.remove('hidden');
+      contentOrders.classList.add('hidden');
+    }
+  }
+</script>

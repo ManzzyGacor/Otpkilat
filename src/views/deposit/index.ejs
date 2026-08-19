@@ -1,0 +1,193 @@
+<div class="max-w-2xl mx-auto space-y-6">
+  
+  <!-- Form Pembuatan Deposit -->
+  <div id="depositFormSection" class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h2 class="text-xl font-bold mb-1">Isi Saldo (QRIS)</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Pilih nominal deposit atau masukkan nominal kustom.</p>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+      <button onclick="setNominal(3000)" class="nominal-btn py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-accent hover:text-accent font-medium transition-all">Rp3.000</button>
+      <button onclick="setNominal(5000)" class="nominal-btn py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-accent hover:text-accent font-medium transition-all">Rp5.000</button>
+      <button onclick="setNominal(10000)" class="nominal-btn py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-accent hover:text-accent font-medium transition-all">Rp10.000</button>
+      <button onclick="setNominal(20000)" class="nominal-btn py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-accent hover:text-accent font-medium transition-all">Rp20.000</button>
+      <button onclick="setNominal(25000)" class="nominal-btn py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-accent hover:text-accent font-medium transition-all">Rp25.000</button>
+      <button onclick="setNominal(50000)" class="nominal-btn py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-accent hover:text-accent font-medium transition-all">Rp50.000</button>
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">Nominal Kustom (Rp)</label>
+      <input type="number" id="customAmount" placeholder="Contoh: 15000" min="10000"
+        class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-accent outline-none transition-all">
+    </div>
+
+    <button id="btnCreateDeposit" class="w-full py-3 px-4 bg-accent hover:bg-blue-600 text-white rounded-xl font-medium shadow-sm transition-all flex justify-center items-center">
+      Buat Deposit
+    </button>
+  </div>
+
+  <!-- Detail & QRIS Code (Hidden by default) -->
+  <div id="qrisSection" class="hidden bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 text-center">
+    <div class="flex justify-between items-center mb-6">
+      <h3 class="font-bold text-gray-800 dark:text-gray-200">Scan QRIS</h3>
+      <span id="depositStatus" class="px-3 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-xs font-bold rounded-full uppercase">Pending</span>
+    </div>
+
+    <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded-2xl inline-block mb-6 border border-gray-200 dark:border-gray-700 shadow-inner">
+      <img id="qrImage" src="" alt="QRIS Code" class="w-64 h-64 object-contain rounded-xl mix-blend-multiply dark:mix-blend-normal bg-white">
+    </div>
+
+    <div class="space-y-3 text-left bg-gray-50 dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 mb-6">
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Deposit ID</span>
+        <span id="displayDepositId" class="font-medium text-gray-800 dark:text-gray-200">-</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Metode</span>
+        <span class="font-medium text-gray-800 dark:text-gray-200 uppercase">QRIS</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Nominal</span>
+        <span id="displayAmount" class="font-medium text-gray-800 dark:text-gray-200">-</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Biaya Layanan</span>
+        <span id="displayFee" class="font-medium text-red-500">-</span>
+      </div>
+      <div class="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
+      <div class="flex justify-between text-base font-bold">
+        <span class="text-gray-700 dark:text-gray-300">Total Transfer</span>
+        <span id="displayTotal" class="text-accent">-</span>
+      </div>
+    </div>
+
+    <p class="text-xs text-gray-500 mb-6">Sistem akan memverifikasi pembayaran Anda secara otomatis. Jangan tutup halaman ini sebelum pembayaran berhasil.</p>
+
+    <button id="btnCancelDeposit" class="w-full py-3 px-4 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 rounded-xl font-medium transition-all">
+      Batalkan Deposit
+    </button>
+  </div>
+
+</div>
+
+<script>
+  let depositPolling = null;
+  let activeDepositId = null;
+
+  const els = {
+    customAmount: document.getElementById('customAmount'),
+    btnCreate: document.getElementById('btnCreateDeposit'),
+    btnCancel: document.getElementById('btnCancelDeposit'),
+    formSection: document.getElementById('depositFormSection'),
+    qrisSection: document.getElementById('qrisSection'),
+    qrImage: document.getElementById('qrImage'),
+    displayDepositId: document.getElementById('displayDepositId'),
+    displayAmount: document.getElementById('displayAmount'),
+    displayFee: document.getElementById('displayFee'),
+    displayTotal: document.getElementById('displayTotal'),
+    depositStatus: document.getElementById('depositStatus')
+  };
+
+  function setNominal(amount) {
+    els.customAmount.value = amount;
+    
+    // Visual feedback untuk tombol yang diklik
+    document.querySelectorAll('.nominal-btn').forEach(btn => {
+      btn.classList.remove('bg-blue-50', 'border-accent', 'text-accent', 'dark:bg-blue-900/30');
+    });
+    event.target.classList.add('bg-blue-50', 'border-accent', 'text-accent', 'dark:bg-blue-900/30');
+  }
+
+  els.btnCreate.addEventListener('click', async () => {
+    const amount = parseInt(els.customAmount.value);
+    
+    if (isNaN(amount) || amount < 3000) {
+      return showToast('warning', 'Minimal deposit adalah Rp3.000');
+    }
+
+    els.btnCreate.innerHTML = 'Memproses...';
+    els.btnCreate.disabled = true;
+
+    try {
+      const res = await axios.post('/api/deposit/create', { amount });
+      
+      if (res.data.success) {
+        const deposit = res.data.data;
+        activeDepositId = deposit.depositId;
+
+        // Render Data
+        els.qrImage.src = deposit.qrImage;
+        els.displayDepositId.innerText = deposit.depositId;
+        els.displayAmount.innerText = `Rp${deposit.amount.toLocaleString('id-ID')}`;
+        els.displayFee.innerText = `Rp${deposit.fee.toLocaleString('id-ID')}`;
+        els.displayTotal.innerText = `Rp${deposit.total.toLocaleString('id-ID')}`;
+
+        els.formSection.classList.add('hidden');
+        els.qrisSection.classList.remove('hidden');
+
+        showToast('success', 'Silakan scan QRIS untuk membayar.');
+        startDepositPolling(activeDepositId);
+      }
+    } catch (error) {
+      showToast('error', error.response?.data?.error?.message || 'Gagal membuat deposit.');
+      els.btnCreate.innerHTML = 'Buat Deposit';
+      els.btnCreate.disabled = false;
+    }
+  });
+
+  function startDepositPolling(depositId) {
+    if (depositPolling) clearInterval(depositPolling);
+    
+    // Cek setiap 5 detik
+    depositPolling = setInterval(async () => {
+      try {
+        const res = await axios.get(`/api/deposit/status/${depositId}`);
+        if (res.data.success) {
+          const status = res.data.data.status;
+          
+          if (status === 'success') {
+            clearInterval(depositPolling);
+            els.depositStatus.innerText = 'BERHASIL';
+            els.depositStatus.classList.replace('bg-yellow-100', 'bg-green-100');
+            els.depositStatus.classList.replace('text-yellow-700', 'text-green-700');
+            
+            showToast('success', 'Pembayaran berhasil! Saldo telah ditambahkan.');
+            els.btnCancel.classList.add('hidden');
+            
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 3000);
+          } else if (status === 'cancel') {
+            clearInterval(depositPolling);
+            els.depositStatus.innerText = 'BATAL';
+            els.depositStatus.classList.replace('bg-yellow-100', 'bg-red-100');
+            els.depositStatus.classList.replace('text-yellow-700', 'text-red-700');
+            showToast('error', 'Deposit dibatalkan atau kadaluarsa.');
+            setTimeout(() => location.reload(), 2000);
+          }
+        }
+      } catch (e) {
+        console.error('Deposit polling error', e);
+      }
+    }, 5000);
+  }
+
+  els.btnCancel.addEventListener('click', async () => {
+    if (!activeDepositId) return;
+    
+    els.btnCancel.innerText = 'Membatalkan...';
+    els.btnCancel.disabled = true;
+
+    try {
+      const res = await axios.post(`/api/deposit/cancel/${activeDepositId}`);
+      if (res.data.success) {
+        clearInterval(depositPolling);
+        showToast('success', 'Deposit berhasil dibatalkan.');
+        setTimeout(() => location.reload(), 1500);
+      }
+    } catch (error) {
+      showToast('error', 'Gagal membatalkan deposit.');
+      els.btnCancel.innerText = 'Batalkan Deposit';
+      els.btnCancel.disabled = false;
+    }
+  });
+</script>

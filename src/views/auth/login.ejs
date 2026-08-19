@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Login - KilatOTP</title>
+  <link rel="stylesheet" href="/css/output.css">
+  <script>
+    // Cek Dark Mode Preference untuk menghindari flash putih
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col font-sans transition-colors duration-300">
+  
+  <%- include('../partials/toast') %>
+
+  <div class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+      
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-accent mb-2">KilatOTP</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Masuk untuk mengakses layanan nomor virtual Anda.</p>
+      </div>
+
+      <form id="loginForm" class="space-y-5">
+        <div>
+          <label class="block text-sm font-medium mb-1.5" for="username">Username</label>
+          <input type="text" id="username" name="username" required
+            class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-accent focus:border-transparent outline-none transition-all">
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="block text-sm font-medium" for="password">Password</label>
+            <a href="#" class="text-xs text-accent hover:underline">Lupa Password?</a>
+          </div>
+          <input type="password" id="password" name="password" required
+            class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-accent focus:border-transparent outline-none transition-all">
+        </div>
+
+        <button type="submit" id="btnSubmit" 
+          class="w-full py-3 px-4 bg-accent hover:bg-blue-600 text-white rounded-xl font-medium shadow-sm transition-all flex justify-center items-center">
+          <span>Masuk Sekarang</span>
+        </button>
+      </form>
+
+      <div class="mt-6 flex items-center justify-center space-x-2">
+        <div class="h-px w-full bg-gray-200 dark:bg-gray-700"></div>
+        <span class="text-xs text-gray-400 font-medium px-2 uppercase">Atau</span>
+        <div class="h-px w-full bg-gray-200 dark:bg-gray-700"></div>
+      </div>
+
+      <div class="mt-6">
+        <a href="/api/auth/google" class="w-full flex items-center justify-center py-3 px-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm">
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" class="w-5 h-5 mr-3">
+          <span class="text-sm font-medium">Login dengan Google</span>
+        </a>
+      </div>
+
+      <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
+        Belum punya akun? <a href="/register" class="text-accent font-medium hover:underline">Daftar di sini</a>
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('btnSubmit');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+      btn.disabled = true;
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await axios.post('/api/auth/login', { username, password });
+        if (response.data.success) {
+          showToast('success', response.data.data.message);
+          setTimeout(() => {
+            window.location.href = response.data.data.redirectUrl;
+          }, 1000);
+        }
+      } catch (error) {
+        showToast('error', error.response?.data?.error?.message || 'Gagal terhubung ke server.');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
