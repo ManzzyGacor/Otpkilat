@@ -126,6 +126,31 @@
             }
         });
 
+// Tambahkan fungsi untuk cek status deposit secara manual
+async function checkDepositStatus() {
+    if(!activeDepositId) return;
+    try {
+        const res = await fetch(`/api/deposit/check?deposit_id=${activeDepositId}&version=${activeVersion}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const json = await res.json();
+        
+        if(json.success) {
+            const status = json.data.status;
+            document.getElementById('statusDepositText').innerText = `Status: ${status}`;
+            
+            if(status === 'success' || status === 'paid') {
+                Toastify({ text: "Deposit Berhasil! Saldo telah bertambah.", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
+                setTimeout(() => window.location.href = '/', 2000);
+            } else {
+                Toastify({ text: `Status: ${status}`, style: { background: "#ff9500", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        }
+    } catch (err) {
+        console.error("Gagal cek status deposit");
+    }
+}
+
         async function cancelDeposit() {
             if(!activeDepositId) return;
             try {
