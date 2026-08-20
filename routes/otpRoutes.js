@@ -18,6 +18,7 @@ const verifyToken = (req, res, next) => {
 };
 
 // Semua rute OTP dilindungi agar hanya user login yang bisa akses
+router.get('/history', verifyToken, otpController.getHistory);
 router.get('/services', verifyToken, otpController.getServices);
 router.get('/countries', verifyToken, otpController.getCountries);
 router.get('/operators', verifyToken, otpController.getOperators);

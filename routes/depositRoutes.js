@@ -16,6 +16,7 @@ const verifyToken = (req, res, next) => {
     }
 };
 
+router.get('/history', verifyToken, depositController.getHistory);
 router.get('/create', verifyToken, depositController.createDeposit);
 router.get('/check', verifyToken, depositController.checkDeposit);
 router.get('/cancel', verifyToken, depositController.cancelDeposit);
