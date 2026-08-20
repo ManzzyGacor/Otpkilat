@@ -5,9 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title><%- typeof title !== 'undefined' ? title + ' - KilatOTP' : 'KilatOTP' %></title>
   
-  <!-- CSS Utama & Motion System -->
+  <!-- 1. WAJIB ADA: Tailwind CDN untuk merender semua class CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 2. WAJIB ADA: Konfigurasi Tailwind untuk warna dan Dark Mode -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            accent: '#2563eb',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- 3. CSS Custom kita (Hanya untuk animasi motion yang sudah digabung) -->
   <link rel="stylesheet" href="/css/output.css">
-  <link rel="stylesheet" href="/css/motion.css">
 
   <script>
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -43,7 +59,7 @@
     </div>
   </header>
 
-  <!-- Konten Utama dengan padding bottom untuk menghindari bottom-nav di mobile -->
+  <!-- Konten Utama -->
   <main class="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 pb-24 md:pb-8 motion-slide-up">
     <%- body %>
   </main>
