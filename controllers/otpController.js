@@ -138,49 +138,39 @@ exports.setOrderStatus = async (req, res) => {
         const { order_id, status } = req.query;
         const userId = req.user.id;
 
-        // Jika status yang diminta adalah 'cancel', terapkan validasi jeda waktu 2 menit
         if (status === 'cancel') {
             const order = await Order.findOne({ orderId: order_id, user: userId });
             if (!order) {
-                return res.status(404).json({ success: false, message: 'Riwayat pesanan tidak ditemukan di sistem.' });
+                return res.status(404).json({ success: false, message: 'Riwayat pesanan tidak ditemukan.' });
             }
 
             const currentTime = Date.now();
             const timeDifferenceInMinutes = (currentTime - order.createdAtTimestamp) / (1000 * 60);
 
-            // Validasi jeda 2 menit (harus lewat dari 2 menit baru boleh cancel/refund)
             if (timeDifferenceInMinutes < 2) {
                 const sisaDetik = Math.ceil((2 - timeDifferenceInMinutes) * 60);
                 return res.status(400).json({ 
                     success: false, 
-                    message: `Tombol cancel belum tersedia. Harap tunggu ${sisaDetik} detik lagi (jeda minimal 2 menit).` 
+                    message: `Harap tunggu ${sisaDetik} detik lagi (jeda minimal 2 menit).` 
                 });
             }
 
-            // Jika sudah lewat 2 menit, batalkan ke server pusat RumahOTP
             const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
 
             if (response.data && response.data.success) {
-                // Refund saldo ke user lokal jika belum pernah di-refund
                 if (order.status !== 'canceled') {
                     const user = await User.findById(userId);
                     user.balance += order.price;
                     await user.save();
-
                     order.status = 'canceled';
                     await order.save();
                 }
             }
-
             return res.status(200).json(response.data);
         }
 
-        // Untuk status lain (misal: 'done' / konfirmasi)
         const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
-        
-        // Update status lokal
         await Order.findOneAndUpdate({ orderId: order_id }, { status: status === 'done' ? 'completed' : status });
-
         res.status(200).json(response.data);
     } catch (error) {
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
@@ -189,29 +179,10 @@ exports.setOrderStatus = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
     try {
-        // Mengambil data pesanan dari database lokal berdasarkan ID user yang sedang login
         const orders = await Order.find({ user: req.user.id }).sort({ createdAtTimestamp: -1 });
-        
-        res.status(200).json({ 
-            success: true, 
-            data: orders 
-        });
+        res.status(200).json({ success: true, data: orders });
     } catch (error) {
         console.error("Error getHistory OTP:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Gagal memuat riwayat pesanan." 
-        });
-    }
-};
-        // Untuk status lain (misal: 'done' / konfirmasi)
-        const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
-        
-        // Update status lokal
-        await Order.findOneAndUpdate({ orderId: order_id }, { status: status === 'done' ? 'completed' : status });
-
-        res.status(200).json(response.data);
-    } catch (error) {
-        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+        res.status(500).json({ success: false, message: "Gagal memuat riwayat pesanan." });
     }
 };
