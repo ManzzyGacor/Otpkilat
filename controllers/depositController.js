@@ -1,4 +1,5 @@
 const axios = require('axios');
+const User = require('../models/User'); // Model User untuk update saldo
 const { sendTelegramNotif } = require('../utils/telegramBot');
 
 const getAxiosConfig = (endpoint, params = {}) => {
@@ -47,6 +48,29 @@ exports.checkDeposit = async (req, res) => {
         }
 
         const response = await axios(getAxiosConfig(endpoint, { deposit_id }));
+        
+        // Logika pengecekan dan penambahan saldo otomatis ke database lokal
+        if (response.data && response.data.success) {
+            const depositData = response.data.data;
+            
+            // Sesuaikan kondisi status sukses dari API RumahOTP (misal: 'success', 'paid', atau 'completed')
+            if (depositData.status === 'success' || depositData.status === 'paid' || depositData.status === 'completed') {
+                const userId = req.user._id; // Diambil dari middleware auth JWT
+                const nominalDeposit = Number(depositData.amount || depositData.total || 0);
+
+                if (nominalDeposit > 0) {
+                    // Cek apakah user sudah pernah ditambahkan saldonya untuk deposit ID ini 
+                    // (Bisa dikembangkan dengan menyimpan riwayat deposit di database agar tidak double-claim)
+                    
+                    await User.findByIdAndUpdate(userId, {
+                        $inc: { balance: nominalDeposit }
+                    });
+
+                    await sendTelegramNotif(`<b>Deposit Berhasil!</b>\n\nID: <code>${deposit_id}</code>\nSaldo sebesar Rp${nominalDeposit} telah ditambahkan ke akun user.`);
+                }
+            }
+        }
+
         res.status(200).json(response.data);
     } catch (error) {
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
