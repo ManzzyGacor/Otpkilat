@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg-color: #f5f5f7;
+    --text-color: #1d1d1f;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-shadow: rgba(0, 0, 0, 0.1);
+    --active-color: #000000;
+    --active-text: #ffffff;
+}
+
+/* Dark Mode Setup (Bisa ditambahkan toggle nanti) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #000000;
+        --text-color: #f5f5f7;
+        --glass-bg: rgba(30, 30, 30, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.1);
+        --glass-shadow: rgba(0, 0, 0, 0.5);
+        --active-color: #ffffff;
+        --active-text: #000000;
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    padding-bottom: 100px; /* Ruang untuk floating navbar */
+    overflow-x: hidden;
+}
+
+/* Container & Typography */
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1, h2, h3 {
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+/* Efek iOS 26 Liquid Glass */
+.liquid-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+    border-radius: 24px;
+}
+
+/* Input Fields */
+.form-group {
+    margin-bottom: 15px;
+}
+
+input {
+    width: 100%;
+    padding: 15px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: transparent;
+    color: var(--text-color);
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+input:focus {
+    border-color: var(--active-color);
+}
+
+/* Buttons */
+.btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 14px;
+    border: none;
+    background-color: var(--active-color);
+    color: var(--active-text);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+
+.btn-google {
+    background-color: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Floating Bottom Navbar */
+.floating-nav {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    border-radius: 40px;
+    z-index: 1000;
+    width: max-content;
+    min-width: 320px;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--text-color);
+    opacity: 0.6;
+    padding: 10px 20px;
+    border-radius: 30px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.nav-item i {
+    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+.nav-item span {
+    font-size: 11px;
+    font-weight: 500;
+    display: none; /* Sembunyikan teks default, tampilkan saat aktif */
+}
+
+/* State Aktif (Membulat & Berwarna) */
+.nav-item.active {
+    opacity: 1;
+    background-color: var(--active-color);
+    color: var(--active-text);
+    padding: 10px 20px;
+}
+
+.nav-item.active span {
+    display: block;
+}

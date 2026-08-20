@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Login</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+</head>
+<body style="display: flex; align-items: center; justify-content: center;">
+
+    <div class="container" style="width: 100%;">
+        <div class="liquid-glass" style="padding: 30px; text-align: center;">
+            <h1 style="margin-bottom: 25px;">Masuk</h1>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+
+            <div style="margin: 20px 0; font-size: 14px; opacity: 0.6;">Atau</div>
+
+            <button class="btn btn-google" onclick="window.location.href='/api/auth/google'">
+                <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" alt="Google" width="20">
+                Masuk dengan Google
+            </button>
+
+            <p style="margin-top: 20px; font-size: 14px;">
+                Belum punya akun? <a href="/register" style="color: var(--active-color);">Daftar di sini</a>
+            </p>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/';
+                } else {
+                    Toastify({
+                        text: data.message,
+                        style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" }
+                    }).showToast();
+                }
+            } catch (error) {
+                Toastify({
+                    text: "Koneksi ke server gagal",
+                    style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" }
+                }).showToast();
+            }
+        });
+    </script>
+</body>
+</html>

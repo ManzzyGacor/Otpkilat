@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Profile</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .avatar-container {
+            position: relative;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        .avatar-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--active-color);
+        }
+        .avatar-badge {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--active-color);
+            color: var(--active-text);
+            border-radius: 50%;
+            padding: 6px;
+            font-size: 14px;
+        }
+        .hidden-input {
+            display: none;
+        }
+        .admin-btn {
+            background-color: #ff9500; /* Warna khusus Admin (iOS Orange) */
+            margin-top: 10px;
+            display: none; /* Sembunyikan default */
+        }
+        .logout-btn {
+            background-color: #ff3b30; /* iOS Red */
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="liquid-glass profile-header">
+            <div class="avatar-container" onclick="document.getElementById('avatarUpload').click()">
+                <img src="https://ui-avatars.com/api/?name=User" alt="Profile" class="avatar-img" id="userAvatar">
+                <div class="avatar-badge"><i class="ph ph-camera"></i></div>
+            </div>
+            <input type="file" id="avatarUpload" class="hidden-input" accept="image/png, image/jpeg">
+            
+            <h2 id="displayFullName">Memuat...</h2>
+            <p style="opacity: 0.7; font-size: 14px;" id="displayUsername">@username</p>
+            <p style="margin-top: 10px; font-weight: 600;">Saldo: <span id="displayBalance">Rp0</span></p>
+        </div>
+
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">Pengaturan Akun</h3>
+        <div class="liquid-glass" style="padding: 20px;">
+            <form id="updateNameForm">
+                <div class="form-group">
+                    <label style="font-size: 14px; opacity: 0.8; margin-bottom: 8px; display: block;">Nama Lengkap</label>
+                    <input type="text" id="inputFullName" required>
+                </div>
+                <button type="submit" class="btn" style="padding: 10px;">Simpan Nama</button>
+            </form>
+        </div>
+
+        <button class="btn admin-btn" id="btnAdmin" onclick="window.location.href='/admin'">Masuk Admin Dashboard</button>
+        <button class="btn logout-btn" onclick="logout()">Keluar Akun</button>
+    </div>
+
+    <!-- Floating Bottom Navbar -->
+    <nav class="floating-nav liquid-glass">
+        <a href="/" class="nav-item">
+            <i class="ph ph-house"></i><span>Home</span>
+        </a>
+        <a href="/deposit" class="nav-item">
+            <i class="ph ph-wallet"></i><span>Deposit</span>
+        </a>
+        <a href="/order" class="nav-item">
+            <i class="ph ph-shopping-cart"></i><span>Order</span>
+        </a>
+        <a href="/riwayat" class="nav-item">
+            <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
+        </a>
+        <a href="/profile" class="nav-item active">
+            <i class="ph ph-user"></i><span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if(!token) window.location.href = '/login';
+
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/user/me', { headers });
+                const json = await res.json();
+                
+                if(json.success) {
+                    const user = json.data;
+                    document.getElementById('displayFullName').innerText = user.fullName;
+                    document.getElementById('inputFullName').value = user.fullName;
+                    document.getElementById('displayUsername').innerText = `@${user.username}`;
+                    document.getElementById('displayBalance').innerText = `Rp${user.balance.toLocaleString('id-ID')}`;
+                    document.getElementById('userAvatar').src = user.avatarUrl;
+
+                    // Tampilkan tombol admin jika rolenya admin (misal daftar pakai username 'man')
+                    if(user.role === 'admin') {
+                        document.getElementById('btnAdmin').style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Gagal memuat profil");
+            }
+        }
+
+        // Update Nama
+        document.getElementById('updateNameForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('inputFullName').value;
+            
+            try {
+                const res = await fetch('/api/user/update-name', {
+                    method: 'PUT',
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullName })
+                });
+                const json = await res.json();
+                if(json.success) {
+                    Toastify({ text: "Nama berhasil diperbarui", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
+                    loadProfile();
+                }
+            } catch (err) {
+                Toastify({ text: "Gagal memperbarui nama", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        });
+
+        // Upload Avatar ke GitHub
+        document.getElementById('avatarUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+
+            Toastify({ text: "Mengunggah avatar...", style: { background: "#007AFF", color: "#fff", borderRadius: "14px" } }).showToast();
+
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            try {
+                const res = await fetch('/api/user/upload-avatar', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }, // Form data tidak perlu Content-Type
+                    body: formData
+                });
+                const json = await res.json();
+                
+                if(json.success) {
+                    Toastify({ text: "Avatar berhasil diubah!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
+                    loadProfile();
+                } else {
+                    Toastify({ text: json.message, style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+                }
+            } catch (err) {
+                Toastify({ text: "Terjadi kesalahan server", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+
+        loadProfile();
+    </script>
+</body>
+</html>

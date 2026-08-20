@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Daftar Akun</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+</head>
+<body style="display: flex; align-items: center; justify-content: center;">
+
+    <div class="container" style="width: 100%;">
+        <div class="liquid-glass" style="padding: 30px; text-align: center;">
+            <h1 style="margin-bottom: 25px;">Buat Akun</h1>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" id="fullName" placeholder="Nama Lengkap" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Username" required>
+                </div>
+                <div class="form-group">
+                    <input type="tel" id="phoneNumber" placeholder="Nomor Handphone (Contoh: 0812...)" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn">Daftar Sekarang</button>
+            </form>
+
+            <div style="margin: 20px 0; font-size: 14px; opacity: 0.6;">Atau</div>
+
+            <button class="btn btn-google" onclick="window.location.href='/api/auth/google'">
+                <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" alt="Google" width="20">
+                Daftar dengan Google
+            </button>
+
+            <p style="margin-top: 20px; font-size: 14px;">
+                Sudah punya akun? <a href="/login" style="color: var(--active-color); font-weight: 600;">Masuk di sini</a>
+            </p>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('fullName').value;
+            const username = document.getElementById('username').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fullName, username, phoneNumber, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Toastify({
+                        text: "Registrasi berhasil! Silakan login.",
+                        style: { background: "var(--active-color)", color: "var(--active-text)", borderRadius: "14px" }
+                    }).showToast();
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
+                } else {
+                    Toastify({
+                        text: data.message,
+                        style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" }
+                    }).showToast();
+                }
+            } catch (error) {
+                Toastify({
+                    text: "Koneksi ke server gagal",
+                    style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" }
+                }).showToast();
+            }
+        });
+    </script>
+</body>
+</html>

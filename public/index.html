@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Home</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Toastify CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="liquid-glass" style="padding: 24px; margin-top: 20px;">
+            <h2>Halo, <span id="userName">User</span> 👋</h2>
+            <p>Saldo: <strong id="userBalance">Rp0</strong></p>
+        </div>
+
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">Layanan Tersedia</h3>
+        <div class="liquid-glass" style="padding: 20px;" id="serviceList">
+            <!-- Data API NOKOS akan dirender di sini -->
+            <p>Memuat layanan...</p>
+        </div>
+    </div>
+
+    <!-- Floating Bottom Navbar -->
+    <nav class="floating-nav liquid-glass">
+        <a href="/" class="nav-item active">
+            <i class="ph ph-house"></i>
+            <span>Home</span>
+        </a>
+        <a href="/deposit" class="nav-item">
+            <i class="ph ph-wallet"></i>
+            <span>Deposit</span>
+        </a>
+        <a href="/order" class="nav-item">
+            <i class="ph ph-shopping-cart"></i>
+            <span>Order</span>
+        </a>
+        <a href="/riwayat" class="nav-item">
+            <i class="ph ph-clock-counter-clockwise"></i>
+            <span>Riwayat</span>
+        </a>
+        <a href="/profile" class="nav-item">
+            <i class="ph ph-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <!-- Toastify JS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        // Contoh Notifikasi Smooth
+        function showNotif(msg) {
+            Toastify({
+                text: msg,
+                duration: 3000,
+                gravity: "top", 
+                position: "center",
+                style: {
+                    background: "var(--active-color)",
+                    color: "var(--active-text)",
+                    borderRadius: "14px",
+                    boxShadow: "0 4px 12px var(--glass-shadow)"
+                }
+            }).showToast();
+        }
+        
+        // Pengecekan token (contoh sederhana)
+        document.addEventListener("DOMContentLoaded", () => {
+            const token = localStorage.getItem('token');
+            if(!token) {
+                window.location.href = '/login';
+            } else {
+                showNotif("Berhasil memuat dashboard");
+            }
+        });
+    </script>
+</body>
+</html>

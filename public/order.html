@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Order Nokos</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .service-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .service-card.selected {
+            border-color: var(--active-color);
+            background: var(--active-color);
+            color: var(--active-text);
+        }
+        .service-card img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+        .number-display-box {
+            background: linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 100%);
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .phone-number {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+        .otp-box {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .otp-code {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: #34c759;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 style="margin-bottom: 20px;">Pesan Nomor Virtual</h2>
+
+        <!-- Step 1: Pilih Layanan -->
+        <div id="stepServiceContainer">
+            <h3 style="font-size: 16px; opacity: 0.8; margin-bottom: 12px;">Pilih Aplikasi</h3>
+            <div class="service-grid" id="serviceGrid">
+                <p style="opacity: 0.6; font-size: 14px;">Memuat daftar layanan...</p>
+            </div>
+        </div>
+
+        <!-- Step 2: Pilih Negara & Pricelist -->
+        <div id="stepCountryContainer" style="display: none; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="font-size: 16px; opacity: 0.8;">Pilih Negara</h3>
+                <button onclick="backToServices()" style="background: none; border: none; color: var(--active-color); cursor: pointer; font-weight: 600;">Ganti Layanan</button>
+            </div>
+            <div id="countryList" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Render negara & harga markup -->
+            </div>
+        </div>
+
+        <!-- Step 3: Kotak Hasil Order & Menunggu OTP -->
+        <div id="activeOrderContainer" style="display: none;">
+            <div class="liquid-glass" style="padding: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                    <img id="activeServiceImg" src="" alt="App" width="30" height="30">
+                    <div>
+                        <h4 id="activeServiceName">Layanan</h4>
+                        <p style="font-size: 12px; opacity: 0.7;" id="activeCountryName">Negara</p>
+                    </div>
+                </div>
+
+                <div class="number-display-box">
+                    <span style="font-size: 13px; opacity: 0.7;">Nomor Telepon (Klik untuk salin)</span>
+                    <div class="phone-number" id="displayPhoneNumber" onclick="copyPhoneNumber()">+62 8xx xxxx</div>
+                    <small style="opacity: 0.5;">ID Order: <span id="displayOrderId">-</span></small>
+                </div>
+
+                <!-- Kolom Menunggu OTP -->
+                <div class="otp-box">
+                    <p style="font-weight: 600; margin-bottom: 5px;" id="otpStatusTitle">⏳ Menunggu Kode OTP...</p>
+                    <div class="otp-code" id="displayOtpCode">------</div>
+                    <p style="font-size: 13px; opacity: 0.7; margin-top: 10px;" id="displayOtpMsg">Pesan SMS belum diterima.</p>
+                </div>
+
+                <!-- Tombol Aksi (Konfirmasi / Batal dengan jeda 2 menit) -->
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn" style="background-color: #34c759;" onclick="setOrderStatus('done')">Konfirmasi (Selesai)</button>
+                    <button class="btn" style="background-color: #ff3b30;" id="btnCancelOrder" onclick="setOrderStatus('cancel')">Batalkan / Refund</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Bottom Navbar -->
+    <nav class="floating-nav liquid-glass">
+        <a href="/" class="nav-item">
+            <i class="ph ph-house"></i><span>Home</span>
+        </a>
+        <a href="/deposit" class="nav-item">
+            <i class="ph ph-wallet"></i><span>Deposit</span>
+        </a>
+        <a href="/order" class="nav-item active">
+            <i class="ph ph-shopping-cart"></i><span>Order</span>
+        </a>
+        <a href="/riwayat" class="nav-item">
+            <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
+        </a>
+        <a href="/profile" class="nav-item">
+            <i class="ph ph-user"></i><span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if(!token) window.location.href = '/login';
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        let selectedServiceId = null;
+        let selectedServiceName = '';
+        let selectedServiceImg = '';
+        let activeOrderId = null;
+        let otpInterval = null;
+
+        // 1. Ambil Daftar Layanan
+        async function loadServices() {
+            try {
+                const res = await fetch('/api/otp/services', { headers });
+                const json = await res.json();
+                if(json.success) {
+                    const grid = document.getElementById('serviceGrid');
+                    grid.innerHTML = '';
+                    json.data.forEach(s => {
+                        grid.innerHTML += `
+                            <div class="service-card" onclick="selectService(${s.service_code}, '${s.service_name}', '${s.service_img}')">
+                                <img src="${s.service_img}" alt="${s.service_name}">
+                                <div style="font-size: 12px; font-weight: 600;">${s.service_name}</div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                Toastify({ text: "Gagal memuat layanan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+            }
+        }
+
+        async function selectService(code, name, img) {
+            selectedServiceId = code;
+            selectedServiceName = name;
+            selectedServiceImg = img;
+
+            document.getElementById('stepServiceContainer').style.display = 'none';
+            document.getElementById('stepCountryContainer').style.display = 'block';
+            loadCountries(code);
+        }
+
+        function backToServices() {
+            document.getElementById('stepCountryContainer').style.display = 'none';
+            document.getElementById('stepServiceContainer').style.display = 'block';
+        }
+
+        // 2. Ambil Daftar Negara (Harga sudah termasuk margin backend)
+        async function loadCountries(serviceId) {
+            try {
+                const res = await fetch(`/api/otp/countries?service_id=${serviceId}`, { headers });
+                const json = await res.json();
+                if(json.success) {
+                    const container = document.getElementById('countryList');
+                    container.innerHTML = '';
+                    json.data.forEach(c => {
+                        if(c.pricelist && c.pricelist.length > 0) {
+                            const p = c.pricelist[0]; // Ambil pricelist pertama
+                            container.innerHTML += `
+                                <div class="liquid-glass" style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <img src="${c.img}" alt="${c.name}" width="28" style="border-radius: 4px;">
+                                        <div>
+                                            <div style="font-weight: 600;">${c.name} (${c.prefix})</div>
+                                            <div style="font-size: 12px; opacity: 0.7;">Stok: ${p.stock} | Harga: <b>${p.price_format}</b></div>
+                                        </div>
+                                    </div>
+                                    <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px;" onclick="orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+            } catch (err) {
+                Toastify({ text: "Gagal memuat negara", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+            }
+        }
+
+        // 3. Eksekusi Pemesanan Nomor
+        async function orderNumber(numberId, providerId, operatorId) {
+            try {
+                Toastify({ text: "Memesan nomor...", style: { background: "#007AFF", borderRadius: "14px" } }).showToast();
+                const res = await fetch(`/api/otp/order?number_id=${numberId}&provider_id=${providerId}&operator_id=${operatorId}`, { headers });
+                const json = await res.json();
+
+                if(json.success) {
+                    const data = json.data;
+                    activeOrderId = data.order_id;
+
+                    document.getElementById('stepCountryContainer').style.display = 'none';
+                    document.getElementById('activeOrderContainer').style.display = 'block';
+
+                    document.getElementById('activeServiceImg').src = selectedServiceImg;
+                    document.getElementById('activeServiceName').innerText = selectedServiceName;
+                    document.getElementById('activeCountryName').innerText = data.country;
+                    document.getElementById('displayPhoneNumber').innerText = data.phone_number;
+                    document.getElementById('displayOrderId').innerText = data.order_id;
+
+                    Toastify({ text: "Nomor berhasil didapatkan!", style: { background: "#34c759", borderRadius: "14px" } }).showToast();
+
+                    // Mulai polling cek status OTP setiap 5 detik
+                    startPollingOtp(data.order_id);
+                } else {
+                    Toastify({ text: json.message || "Gagal memesan nomor", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+                }
+            } catch (err) {
+                Toastify({ text: "Terjadi kesalahan server", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+            }
+        }
+
+        // Salin Nomor Otomatis
+        function copyPhoneNumber() {
+            const num = document.getElementById('displayPhoneNumber').innerText;
+            navigator.clipboard.writeText(num);
+            Toastify({ text: "Nomor disalin ke clipboard!", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
+        }
+
+        // 4. Polling Cek Status OTP
+        function startPollingOtp(orderId) {
+            if(otpInterval) clearInterval(otpInterval);
+
+            otpInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/otp/check-order?order_id=${orderId}`, { headers });
+                    const json = await res.json();
+                    if(json.success && json.data) {
+                        const d = json.data;
+                        if(d.otp_code) {
+                            document.getElementById('otpStatusTitle').innerText = "✅ Kode OTP Diterima!";
+                            document.getElementById('displayOtpCode').innerText = d.otp_code;
+                            document.getElementById('displayOtpMsg').innerText = d.otp_msg || '';
+                            clearInterval(otpInterval); // Berhenti polling kalau sudah dapat
+                        }
+                    }
+                } catch (err) {
+                    console.error("Gagal memeriksa status OTP");
+                }
+            }, 5000);
+        }
+
+        // 5. Ubah Status Pesanan (Konfirmasi atau Cancel dengan jeda 2 menit)
+        async function setOrderStatus(status) {
+            if(!activeOrderId) return;
+            try {
+                const res = await fetch(`/api/otp/set-status?order_id=${activeOrderId}&status=${status}`, { headers });
+                const json = await res.json();
+
+                if(json.success) {
+                    Toastify({ text: `Status berhasil diubah ke: ${status}`, style: { background: "#34c759", borderRadius: "14px" } }).showToast();
+                    if(status === 'cancel' || status === 'done') {
+                        if(otpInterval) clearInterval(otpInterval);
+                        setTimeout(() => window.location.href = '/', 2000);
+                    }
+                } else {
+                    Toastify({ text: json.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+                }
+            } catch (err) {
+                Toastify({ text: "Gagal memproses permintaan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+            }
+        }
+
+        loadServices();
+    </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .admin-card {
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            color: #ffffff;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="adminContent" style="display: none;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Admin Panel</h2>
+            <button class="btn" style="width: auto; padding: 10px 15px; background: transparent; border: 1px solid var(--glass-border); color: var(--text-color);" onclick="window.location.href='/profile'">
+                Kembali
+            </button>
+        </div>
+
+        <!-- Cek Saldo Pusat RumahOTP -->
+        <div class="admin-card">
+            <h3 style="font-size: 16px; opacity: 0.8; margin-bottom: 5px;">Saldo Pusat (RumahOTP)</h3>
+            <h1 id="centerBalance" style="font-size: 32px;">Mengambil data...</h1>
+            <p id="centerUsername" style="font-size: 14px; opacity: 0.7; margin-top: 10px;">@admin</p>
+        </div>
+
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">Konfigurasi Database</h3>
+        
+        <!-- Setup Margin & Pengumuman ke MongoDB -->
+        <div class="liquid-glass" style="padding: 20px; margin-bottom: 15px;">
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label style="font-size: 14px; opacity: 0.8; margin-bottom: 8px; display: block;">Margin Profit Harga (%)</label>
+                    <input type="number" id="marginProfit" placeholder="Memuat..." required>
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 14px; opacity: 0.8; margin-bottom: 8px; display: block;">Pengumuman Beranda (Announcement)</label>
+                    <input type="text" id="announcementText" placeholder="Memuat..." required>
+                </div>
+                <button type="submit" class="btn">Simpan ke Database</button>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Floating Bottom Navbar -->
+    <nav class="floating-nav liquid-glass">
+        <a href="/" class="nav-item">
+            <i class="ph ph-house"></i><span>Home</span>
+        </a>
+        <a href="/deposit" class="nav-item">
+            <i class="ph ph-wallet"></i><span>Deposit</span>
+        </a>
+        <a href="/order" class="nav-item">
+            <i class="ph ph-shopping-cart"></i><span>Order</span>
+        </a>
+        <a href="/riwayat" class="nav-item">
+            <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
+        </a>
+        <a href="/profile" class="nav-item">
+            <i class="ph ph-user"></i><span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if(!token) window.location.href = '/login';
+
+        const headers = { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+
+        // Verifikasi Admin, Ambil Saldo Pusat & Ambil Pengaturan dari MongoDB
+        async function loadAdminDashboard() {
+            try {
+                // 1. Cek Saldo Pusat
+                const resBalance = await fetch('/api/user/admin/balance', { headers });
+                const jsonBalance = await resBalance.json();
+                
+                if(resBalance.status === 403 || !jsonBalance.success) {
+                    Toastify({ text: "Akses Ditolak!", style: { background: "#ff3b30" } }).showToast();
+                    setTimeout(() => window.location.href = '/profile', 1500);
+                    return;
+                }
+
+                document.getElementById('adminContent').style.display = 'block';
+                document.getElementById('centerBalance').innerText = jsonBalance.data.formated;
+                document.getElementById('centerUsername').innerText = `Akun Utama: @${jsonBalance.data.username}`;
+
+                // 2. Ambil Setting dari Database
+                const resSettings = await fetch('/api/admin/settings', { headers });
+                const jsonSettings = await resSettings.json();
+
+                if (jsonSettings.success) {
+                    document.getElementById('marginProfit').value = jsonSettings.data.marginProfit;
+                    document.getElementById('announcementText').value = jsonSettings.data.announcement;
+                }
+                
+            } catch (err) {
+                Toastify({ text: "Gagal memuat data Admin", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        }
+
+        // Simpan Pengaturan ke MongoDB
+        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const marginProfit = document.getElementById('marginProfit').value;
+            const announcement = document.getElementById('announcementText').value;
+            
+            try {
+                const response = await fetch('/api/admin/settings', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ marginProfit, announcement })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Toastify({ text: "Konfigurasi Database berhasil diperbarui!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
+                } else {
+                    Toastify({ text: data.message, style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+                }
+            } catch (error) {
+                Toastify({ text: "Terjadi kesalahan saat menyimpan", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        });
+
+        loadAdminDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+const axios = require('axios');
+const { sendTelegramNotif } = require('../utils/telegramBot');
+const Setting = require('../models/Setting');
+const User = require('../models/User');
+
+const getAxiosConfig = (endpoint, params = {}) => {
+    return {
+        method: 'GET',
+        url: `${process.env.RUMAHOTP_BASE_URL}${endpoint}`,
+        headers: {
+            'x-apikey': process.env.RUMAHOTP_API_KEY,
+            'Accept': 'application/json'
+        },
+        params: params
+    };
+};
+
+// Helper: Ambil Margin dari Database
+const getMargin = async () => {
+    const setting = await Setting.findOne();
+    return setting ? setting.marginProfit : 0;
+};
+
+// Helper: Format Rupiah
+const formatRupiah = (angka) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+};
+
+exports.getServices = async (req, res) => {
+    try {
+        const response = await axios(getAxiosConfig('/v2/services'));
+        res.status(200).json(response.data);
+    } catch (error) {
+        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+    }
+};
+
+exports.getCountries = async (req, res) => {
+    try {
+        const { service_id } = req.query;
+        const response = await axios(getAxiosConfig('/v2/countries', { service_id }));
+        
+        if (response.data && response.data.success) {
+            const margin = await getMargin();
+            
+            // Kalkulasi harga markup ke seluruh daftar negara
+            response.data.data = response.data.data.map(country => {
+                if (country.pricelist) {
+                    country.pricelist = country.pricelist.map(priceItem => {
+                        const originalPrice = priceItem.price;
+                        const sellingPrice = Math.ceil(originalPrice + (originalPrice * margin / 100)); // Dibulatkan ke atas
+                        
+                        priceItem.price = sellingPrice;
+                        priceItem.price_format = formatRupiah(sellingPrice);
+                        return priceItem;
+                    });
+                }
+                return country;
+            });
+        }
+
+        res.status(200).json(response.data);
+    } catch (error) {
+        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+    }
+};
+
+exports.getOperators = async (req, res) => {
+    try {
+        const { country, provider_id } = req.query;
+        const response = await axios(getAxiosConfig('/v2/operators', { country, provider_id }));
+        res.status(200).json(response.data);
+    } catch (error) {
+        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+    }
+};
+
+exports.orderNumber = async (req, res) => {
+    try {
+        const { number_id, provider_id, operator_id } = req.query;
+        const userId = req.user.id; // Diambil dari JWT Middleware
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+        }
+
+        // Tembak order ke server pusat (RumahOTP)
+        const response = await axios(getAxiosConfig('/v2/orders', { number_id, provider_id, operator_id }));
+        
+        if (response.data && response.data.success) {
+            const data = response.data.data;
+            const originalPrice = data.price;
+            const margin = await getMargin();
+            const sellingPrice = Math.ceil(originalPrice + (originalPrice * margin / 100));
+
+            // Validasi: Apakah saldo user lokal cukup untuk harga jual?
+            if (user.balance < sellingPrice) {
+                // Saldo tidak cukup! Batalkan segera di server pusat agar saldo pusatmu direfund.
+                await axios(getAxiosConfig('/v1/orders/set_status', { order_id: data.order_id, status: 'cancel' }));
+                return res.status(400).json({ success: false, message: 'Saldo KilatOTP Anda tidak mencukupi.' });
+            }
+
+            // Potong saldo lokal user
+            user.balance -= sellingPrice;
+            await user.save();
+
+            // Ubah response harga asli menjadi harga jual untuk ditampilkan di frontend
+            data.price = sellingPrice;
+            data.price_formated = formatRupiah(sellingPrice);
+
+            // Notifikasi Telegram (Menampilkan info Profit)
+            const profit = sellingPrice - originalPrice;
+            const notifMessage = `<b>Pesanan NOKOS Baru!</b>\n\nUser: @${user.username}\nID: <code>${data.order_id}</code>\nLayanan: ${data.service}\nNegara: ${data.country}\nHarga Pusat: Rp${originalPrice}\n<b>Harga Jual: Rp${sellingPrice}</b>\n<b>Profit: Rp${profit}</b>\nNomor: <code>${data.phone_number}</code>`;
+            await sendTelegramNotif(notifMessage);
+        }
+
+        res.status(200).json(response.data);
+    } catch (error) {
+        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+    }
+};
+
+exports.checkOrder = async (req, res) => {
+    try {
+        const { order_id } = req.query;
+        const response = await axios(getAxiosConfig('/v1/orders/get_status', { order_id }));
+        res.status(200).json(response.data);
+    } catch (error) {
+        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+    }
+};
+
+exports.setOrderStatus = async (req, res) => {
+    try {
+        const { order_id, status } = req.query;
+        // Peringatan: Logika pengembalian dana (refund) untuk status 'cancel' akan diimplementasikan setelah model Database Order dibuat.
+        const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
+        res.status(200).json(response.data);
+    } catch (error) {
+        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+    }
+};

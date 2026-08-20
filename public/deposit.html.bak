@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Deposit Saldo</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .qr-box {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .qr-img {
+            max-width: 200px;
+            border-radius: 12px;
+            margin: 15px auto;
+            border: 4px solid var(--glass-border);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 style="margin-bottom: 20px;">Top Up Saldo</h2>
+
+        <!-- Form Pembuatan Deposit -->
+        <div class="liquid-glass" style="padding: 20px; margin-bottom: 30px;">
+            <form id="depositForm">
+                <div class="form-group">
+                    <label style="font-size: 14px; opacity: 0.8; margin-bottom: 8px; display: block;">Nominal (IDR)</label>
+                    <input type="number" id="depositAmount" placeholder="Contoh: 50000" min="10000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-size: 14px; opacity: 0.8; margin-bottom: 8px; display: block;">Metode Pembayaran</label>
+                    <select id="paymentMethod" style="width: 100%; padding: 15px; border-radius: 14px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color); font-size: 16px; outline: none;">
+                        <option value="qris" style="background: var(--bg-color);">QRIS (Instan)</option>
+                        <option value="usdt-trc-20" style="background: var(--bg-color);">USDT TRC-20 (V2)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn">Buat Permintaan Deposit</button>
+            </form>
+        </div>
+
+        <!-- Hasil QR / Instruksi Pembayaran (Hidden Default) -->
+        <div class="liquid-glass qr-box" id="depositResultBox" style="display: none; padding: 20px;">
+            <h3>Scan QR Pembayaran</h3>
+            <p id="depositIdText" style="font-size: 12px; opacity: 0.6; margin-top: 5px;"></p>
+            <img id="qrImageElement" src="" alt="QR Code" class="qr-img">
+            <p id="totalBayarText" style="font-weight: 600; font-size: 18px; margin: 10px 0;"></p>
+            <p id="statusDepositText" style="font-size: 14px; color: #ff9500;">Status: Pending</p>
+            
+            <button class="btn" style="background-color: #ff3b30; margin-top: 15px;" onclick="cancelDeposit()">Batalkan Transaksi</button>
+        </div>
+    </div>
+
+    <!-- Floating Bottom Navbar -->
+    <nav class="floating-nav liquid-glass">
+        <a href="/" class="nav-item">
+            <i class="ph ph-house"></i><span>Home</span>
+        </a>
+        <a href="/deposit" class="nav-item active">
+            <i class="ph ph-wallet"></i><span>Deposit</span>
+        </a>
+        <a href="/order" class="nav-item">
+            <i class="ph ph-shopping-cart"></i><span>Order</span>
+        </a>
+        <a href="/riwayat" class="nav-item">
+            <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
+        </a>
+        <a href="/profile" class="nav-item">
+            <i class="ph ph-user"></i><span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if(!token) window.location.href = '/login';
+
+        let activeDepositId = null;
+        let activeVersion = 'v1';
+
+        document.getElementById('depositForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = document.getElementById('depositAmount').value;
+            const method = document.getElementById('paymentMethod').value;
+            
+            activeVersion = method === 'usdt-trc-20' ? 'v2' : 'v1';
+
+            try {
+                Toastify({ text: "Membuat tagihan deposit...", style: { background: "#007AFF", color: "#fff", borderRadius: "14px" } }).showToast();
+                
+                const res = await fetch(`/api/deposit/create?amount=${amount}&payment_id=${method}&version=${activeVersion}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const json = await res.json();
+
+                if(json.success) {
+                    const data = json.data;
+                    activeDepositId = data.id;
+
+                    document.getElementById('depositIdText').innerText = `ID: ${data.id}`;
+                    document.getElementById('qrImageElement').src = data.qr_image;
+                    
+                    const totalTagihan = data.currency ? data.currency.total : data.total;
+                    document.getElementById('totalBayarText').innerText = `Total: ${typeof totalTagihan === 'number' ? 'Rp' + totalTagihan.toLocaleString('id-ID') : totalTagihan}`;
+                    
+                    document.getElementById('depositResultBox').style.display = 'block';
+                    Toastify({ text: "Tagihan berhasil dibuat!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
+                } else {
+                    Toastify({ text: "Gagal membuat deposit", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+                }
+            } catch (err) {
+                Toastify({ text: "Terjadi kesalahan koneksi", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        });
+
+        async function cancelDeposit() {
+            if(!activeDepositId) return;
+            try {
+                const res = await fetch(`/api/deposit/cancel?deposit_id=${activeDepositId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const json = await res.json();
+                if(json.success) {
+                    Toastify({ text: "Deposit dibatalkan", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+                    document.getElementById('depositResultBox').style.display = 'none';
+                    activeDepositId = null;
+                }
+            } catch (err) {
+                Toastify({ text: "Gagal membatalkan deposit", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        }
+    </script>
+</body>
+</html>
