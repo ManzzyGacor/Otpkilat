@@ -77,6 +77,24 @@ exports.checkDeposit = async (req, res) => {
     }
 };
 
+exports.getHistory = async (req, res) => {
+    try {
+        // Mengambil data deposit dari database lokal berdasarkan ID user
+        const deposits = await Deposit.find({ user: req.user._id }).sort({ created_at: -1 });
+        
+        res.status(200).json({ 
+            success: true, 
+            data: deposits 
+        });
+    } catch (error) {
+        console.error("Error getHistory Deposit:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Gagal memuat riwayat deposit." 
+        });
+    }
+};
+
 exports.cancelDeposit = async (req, res) => {
     try {
         const { deposit_id } = req.query;
