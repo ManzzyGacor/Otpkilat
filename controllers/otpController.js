@@ -175,10 +175,24 @@ exports.setOrderStatus = async (req, res) => {
             return res.status(200).json(response.data);
         }
 
+        // Untuk status lain (misal: 'done' / konfirmasi)
+        const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
+        
+        // Update status lokal
+        await Order.findOneAndUpdate({ orderId: order_id }, { status: status === 'done' ? 'completed' : status });
+
+        res.status(200).json(response.data);
+    } catch (error) {
+        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+    }
+}; // <--- INI PENUTUP SET ORDER STATUS
+
+// BARU TARUH GET HISTORY DI BAWAH SINI
 exports.getHistory = async (req, res) => {
     try {
         // Mengambil data pesanan dari database lokal berdasarkan ID user yang sedang login
-        const orders = await Order.find({ user: req.user._id }).sort({ created_at: -1 });
+        // Ubah req.user._id menjadi req.user.id agar sesuai dengan middleware kamu
+        const orders = await Order.find({ user: req.user.id }).sort({ createdAtTimestamp: -1 });
         
         res.status(200).json({ 
             success: true, 
