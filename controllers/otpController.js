@@ -185,13 +185,11 @@ exports.setOrderStatus = async (req, res) => {
     } catch (error) {
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
     }
-}; // <--- INI PENUTUP SET ORDER STATUS
+};
 
-// BARU TARUH GET HISTORY DI BAWAH SINI
 exports.getHistory = async (req, res) => {
     try {
         // Mengambil data pesanan dari database lokal berdasarkan ID user yang sedang login
-        // Ubah req.user._id menjadi req.user.id agar sesuai dengan middleware kamu
         const orders = await Order.find({ user: req.user.id }).sort({ createdAtTimestamp: -1 });
         
         res.status(200).json({ 
