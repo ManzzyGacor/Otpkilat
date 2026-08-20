@@ -37,22 +37,35 @@
             object-fit: contain;
             flex-shrink: 0;
         }
-        /* Style baru untuk kartu negara & harga yang lebih rapi */
+        /* Kartu Negara */
         .country-card {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             border-radius: 18px;
             padding: 16px;
             margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
             backdrop-filter: blur(12px);
+        }
+        .country-card:hover {
+            border-color: var(--active-color);
+        }
+        /* Kontainer Pricelist (Hidden default, muncul saat diklik) */
+        .pricelist-container {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--glass-border);
         }
         .pricelist-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid var(--glass-border);
+            margin-top: 8px;
+            padding: 10px;
+            background: rgba(0,0,0,0.03);
+            border-radius: 12px;
         }
         .pagination-container {
             display: flex;
@@ -120,7 +133,7 @@
             </div>
         </div>
 
-        <!-- Step 2: Pilih Negara & Pricelist Harga (Dengan Pagination) -->
+        <!-- Step 2: Pilih Negara & Dropdown Pricelist Harga -->
         <div id="stepCountryContainer" style="display: none; margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <h3 id="selectedAppTitle" style="font-size: 16px; opacity: 0.8;">Pilih Negara</h3>
@@ -133,7 +146,7 @@
             </div>
 
             <div id="countryList" style="display: flex; flex-direction: column; gap: 10px;">
-                <!-- Render negara & pilihan harga pricelist -->
+                <!-- Render negara & dropdown harga -->
             </div>
 
             <!-- Tombol Navigasi Pagination Negara -->
@@ -168,7 +181,7 @@
                     <p style="font-size: 13px; opacity: 0.7; margin-top: 10px;" id="displayOtpMsg">Pesan SMS belum diterima.</p>
                 </div>
 
-                <!-- Tombol Aksi (Konfirmasi / Batal dengan jeda 2 menit) -->
+                <!-- Tombol Aksi (Konfirmasi / Batal) -->
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn" style="background-color: #34c759;" onclick="setOrderStatus('done')">Konfirmasi (Selesai)</button>
                     <button class="btn" style="background-color: #ff3b30;" id="btnCancelOrder" onclick="setOrderStatus('cancel')">Batalkan / Refund</button>
@@ -210,7 +223,7 @@
         let allCountries = [];
         let filteredCountries = [];
         let currentCountryPage = 1;
-        const countriesPerPage = 10; // Batasi 10 negara per halaman agar ringan
+        const countriesPerPage = 12; // 12 negara per halaman
 
         let selectedServiceName = '';
         let selectedServiceImg = '';
@@ -229,7 +242,7 @@
                     renderPage();
                 }
             } catch (err) {
-                Toastify({ text: "Gagal memuat layanan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+                console.error("Gagal memuat layanan");
             }
         }
 
@@ -260,7 +273,7 @@
             if(totalPages > 1) {
                 document.getElementById('paginationControls').style.display = 'flex';
                 document.getElementById('pageInfo').innerText = `Hal ${currentPage} dari ${totalPages}`;
-                document.getElementById('prevBtndisabled').disabled = currentPage === 1;
+                document.getElementById('prevBtn').disabled = currentPage === 1;
                 document.getElementById('nextBtn').disabled = currentPage === totalPages;
             } else {
                 document.getElementById('paginationControls').style.display = 'none';
@@ -300,11 +313,11 @@
             document.getElementById('stepServiceContainer').style.display = 'block';
         }
 
-        // 2. Ambil Daftar Negara & Pricelist dengan Sistem Pagination & Tampilan Baru
+        // 2. Ambil Daftar Negara (Harga disembunyikan sampai kartu negara diklik)
         async function loadCountries(serviceId) {
             try {
                 const container = document.getElementById('countryList');
-                container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Memuat daftar negara & harga...</p>`;
+                container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Memuat daftar negara...</p>`;
                 document.getElementById('countryPaginationControls').style.display = 'none';
 
                 const res = await fetch(`/api/otp/countries?service_id=${serviceId}`, { headers });
@@ -335,37 +348,43 @@
             const endIndex = startIndex + countriesPerPage;
             const paginatedCountries = filteredCountries.slice(startIndex, endIndex);
 
-            paginatedCountries.forEach(c => {
+            paginatedCountries.forEach((c, index) => {
                 let pricelistHtml = '';
                 if(c.pricelist && c.pricelist.length > 0) {
                     c.pricelist.forEach(p => {
                         pricelistHtml += `
                             <div class="pricelist-row">
                                 <div style="font-size: 13px;">
-                                    Stok: <span style="font-weight: 600; color: var(--text-color);">${p.stock}</span> | 
-                                    Harga: <b style="color: #34c759; font-size: 14px;">${p.price_format}</b>
+                                    Stok: <span style="font-weight: 600;">${p.stock}</span> | 
+                                    Harga: <b style="color: #34c759;">${p.price_format}</b>
                                 </div>
-                                <button class="btn" style="width: auto; padding: 6px 16px; font-size: 13px; background: var(--active-color); color: var(--active-text);" onclick="orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
+                                <button class="btn" style="width: auto; padding: 6px 14px; font-size: 12px; background: var(--active-color); color: var(--active-text);" onclick="event.stopPropagation(); orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
                             </div>
                         `;
                     });
+                } else {
+                    pricelistHtml = `<p style="font-size: 12px; opacity: 0.6; margin-top: 8px;">Stok kosong / Tidak tersedia</p>`;
                 }
 
                 container.innerHTML += `
-                    <div class="country-card">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${c.img}" alt="${c.name}" width="30" style="border-radius: 6px; border: 1px solid var(--glass-border);">
-                            <div>
-                                <div style="font-weight: 700; font-size: 15px;">${c.name}</div>
-                                <div style="font-size: 12px; opacity: 0.6;">Kode Prefix: ${c.prefix}</div>
+                    <div class="country-card" onclick="togglePricelist(${index})">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <img src="${c.img}" alt="${c.name}" width="28" style="border-radius: 4px; border: 1px solid var(--glass-border);">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 15px;">${c.name}</div>
+                                    <div style="font-size: 12px; opacity: 0.6;">Prefix: ${c.prefix}</div>
+                                </div>
                             </div>
+                            <i class="ph ph-caret-down" id="icon-${index}" style="font-size: 18px; transition: transform 0.2s;"></i>
                         </div>
-                        ${pricelistHtml}
+                        <div class="pricelist-container" id="pricelist-${index}">
+                            ${pricelistHtml}
+                        </div>
                     </div>
                 `;
             });
 
-            // Atur Pagination Negara
             const totalPages = Math.ceil(filteredCountries.length / countriesPerPage);
             if(totalPages > 1) {
                 document.getElementById('countryPaginationControls').style.display = 'flex';
@@ -374,6 +393,20 @@
                 document.getElementById('countryNextBtn').disabled = currentCountryPage === totalPages;
             } else {
                 document.getElementById('countryPaginationControls').style.display = 'none';
+            }
+        }
+
+        // Fungsi Dropdown Klik Kartu Negara untuk Munculkan Harga
+        function togglePricelist(index) {
+            const container = document.getElementById(`pricelist-${index}`);
+            const icon = document.getElementById(`icon-${index}`);
+            
+            if (container.style.display === 'block') {
+                container.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                container.style.display = 'block';
+                icon.style.transform = 'rotate(180deg)';
             }
         }
 
@@ -414,7 +447,6 @@
                     document.getElementById('displayOrderId').innerText = data.order_id;
 
                     Toastify({ text: "Nomor berhasil didapatkan!", style: { background: "#34c759", borderRadius: "14px" } }).showToast();
-
                     startPollingOtp(data.order_id);
                 } else {
                     Toastify({ text: json.message || "Gagal memesan nomor", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
@@ -432,7 +464,6 @@
 
         function startPollingOtp(orderId) {
             if(otpInterval) clearInterval(otpInterval);
-
             otpInterval = setInterval(async () => {
                 try {
                     const res = await fetch(`/api/otp/check-order?order_id=${orderId}`, { headers });

@@ -46,16 +46,18 @@
             </form>
         </div>
 
-        <!-- Hasil QR / Instruksi Pembayaran (Hidden Default) -->
-        <div class="liquid-glass qr-box" id="depositResultBox" style="display: none; padding: 20px;">
-            <h3>Scan QR Pembayaran</h3>
-            <p id="depositIdText" style="font-size: 12px; opacity: 0.6; margin-top: 5px;"></p>
-            <img id="qrImageElement" src="" alt="QR Code" class="qr-img">
-            <p id="totalBayarText" style="font-weight: 600; font-size: 18px; margin: 10px 0;"></p>
-            <p id="statusDepositText" style="font-size: 14px; color: #ff9500;">Status: Pending</p>
-            
-            <button class="btn" style="background-color: #ff3b30; margin-top: 15px;" onclick="cancelDeposit()">Batalkan Transaksi</button>
-        </div>
+<!-- Hasil QR / Instruksi Pembayaran (Hidden Default) -->
+<div class="liquid-glass qr-box" id="depositResultBox" style="display: none; padding: 20px;">
+    <h3>Scan QR Pembayaran</h3>
+    <p id="depositIdText" style="font-size: 12px; opacity: 0.6; margin-top: 5px;"></p>
+    <img id="qrImageElement" src="" alt="QR Code" class="qr-img">
+    <p id="totalBayarText" style="font-weight: 600; font-size: 18px; margin: 10px 0;"></p>
+    <p id="statusDepositText" style="font-size: 14px; color: #ff9500;">Status: Pending</p>
+    
+    <!-- Tombol Cek Status Pembayaran Manual -->
+    <button class="btn" style="background-color: #34c759; margin-top: 10px;" onclick="checkDepositStatus()">Cek Status Pembayaran</button>
+    <button class="btn" style="background-color: #ff3b30; margin-top: 10px;" onclick="cancelDeposit()">Batalkan Transaksi</button>
+</div>
     </div>
 
     <!-- Floating Bottom Navbar -->
