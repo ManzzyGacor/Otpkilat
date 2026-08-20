@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KilatOTP - Riwayat Transaksi</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        /* Desain Tab (Segmented Control iOS Style) */
+        .segmented-control {
+            display: flex;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 14px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        .segment {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-color);
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+        .segment.active {
+            background: var(--glass-bg);
+            opacity: 1;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Desain Kartu Riwayat Umum */
+        .history-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(12px);
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .item-info img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .icon-box {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--active-color);
+        }
+
+        /* Badge Status */
+        .status-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+        .status-success { background: rgba(52, 199, 89, 0.15); color: #34c759; }
+        .status-pending { background: rgba(255, 149, 0, 0.15); color: #ff9500; }
+        .status-canceled { background: rgba(255, 59, 48, 0.15); color: #ff3b30; }
+
+        /* Detail Pesanan OTP */
+        .number-box {
+            background: rgba(0, 0, 0, 0.04);
+            border: 1px dashed var(--glass-border);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .number-text {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--text-color);
+        }
+        .otp-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: #34c759;
+            margin-top: 5px;
+        }
+        .history-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            opacity: 0.6;
+            border-top: 1px solid var(--glass-border);
+            padding-top: 10px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 style="margin-bottom: 20px;">Riwayat Transaksi</h2>
+
+        <!-- Segmented Control (Tabs) -->
+        <div class="segmented-control">
+            <div class="segment active" id="tabOrder" onclick="switchTab('order')">Pesanan OTP</div>
+            <div class="segment" id="tabDeposit" onclick="switchTab('deposit')">Isi Saldo</div>
+        </div>
+
+        <!-- Kontainer Pesanan OTP -->
+        <div id="orderContainer">
+            <p style="opacity: 0.6; text-align: center; margin-top: 30px;">Memuat riwayat pesanan...</p>
+        </div>
+
+        <!-- Kontainer Isi Saldo (Deposit) -->
+        <div id="depositContainer" style="display: none;">
+            <p style="opacity: 0.6; text-align: center; margin-top: 30px;">Memuat riwayat deposit...</p>
+        </div>
+    </div>
+
+    <!-- Floating Bottom Navbar -->
+    <nav class="floating-nav liquid-glass">
+        <a href="/" class="nav-item">
+            <i class="ph ph-house"></i><span>Home</span>
+        </a>
+        <a href="/deposit" class="nav-item">
+            <i class="ph ph-wallet"></i><span>Deposit</span>
+        </a>
+        <a href="/order" class="nav-item">
+            <i class="ph ph-shopping-bag"></i><span>Order</span>
+        </a>
+        <a href="/riwayat" class="nav-item active" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 12px;">
+            <i class="ph ph-clock-counter-clockwise" style="font-size: 22px;"></i>
+        </a>
+        <a href="/profile" class="nav-item">
+            <i class="ph ph-user"></i><span>Profile</span>
+        </a>
+    </nav>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if(!token) window.location.href = '/login';
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Format Tanggal & Rupiah
+        const formatDate = (dateString) => {
+            const options = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+            return new Date(dateString).toLocaleDateString('id-ID', options);
+        };
+        const formatRupiah = (angka) => `Rp${Number(angka).toLocaleString('id-ID')}`;
+        const copyToClipboard = (text) => {
+            navigator.clipboard.writeText(text);
+            Toastify({ text: "Berhasil disalin!", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
+        };
+
+        // Fungsi Ganti Tab
+        function switchTab(tab) {
+            document.getElementById('tabOrder').classList.remove('active');
+            document.getElementById('tabDeposit').classList.remove('active');
+            
+            document.getElementById('orderContainer').style.display = 'none';
+            document.getElementById('depositContainer').style.display = 'none';
+
+            if(tab === 'order') {
+                document.getElementById('tabOrder').classList.add('active');
+                document.getElementById('orderContainer').style.display = 'block';
+                loadOrderHistory();
+            } else {
+                document.getElementById('tabDeposit').classList.add('active');
+                document.getElementById('depositContainer').style.display = 'block';
+                loadDepositHistory();
+            }
+        }
+
+        // 1. Ambil Riwayat Pesanan OTP
+        async function loadOrderHistory() {
+            const container = document.getElementById('orderContainer');
+            try {
+                const res = await fetch('/api/otp/history', { headers });
+                const json = await res.json();
+
+                if (json.success && json.data.length > 0) {
+                    container.innerHTML = '';
+                    json.data.reverse().forEach(order => {
+                        let statusClass = 'status-pending';
+                        let statusText = 'Pending';
+                        
+                        if (order.status === 'completed' || order.status === 'done') {
+                            statusClass = 'status-success'; statusText = 'Selesai';
+                        } else if (order.status === 'canceled' || order.status === 'refunded') {
+                            statusClass = 'status-canceled'; statusText = 'Batal';
+                        }
+
+                        const otpDisplay = order.otp_code 
+                            ? `<div class="otp-text">OTP: ${order.otp_code} <i class="ph ph-copy" style="cursor:pointer;" onclick="copyToClipboard('${order.otp_code}')"></i></div>` 
+                            : `<div style="font-size: 12px; opacity: 0.5; margin-top: 5px;">Belum ada SMS</div>`;
+
+                        container.innerHTML += `
+                            <div class="history-card">
+                                <div class="history-header">
+                                    <div class="item-info">
+                                        <img src="${order.service_img || 'https://assets.cindigital.id/apps/other.png'}" alt="App">
+                                        <div>
+                                            <h4 style="margin: 0; font-size: 14px;">${order.service_name || 'Layanan'}</h4>
+                                            <span style="font-size: 12px; opacity: 0.7;">${order.country || 'Negara'}</span>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                </div>
+                                <div class="number-box">
+                                    <div class="number-text" onclick="copyToClipboard('${order.phone_number}')" style="cursor:pointer;">
+                                        ${order.phone_number || '-'} <i class="ph ph-copy" style="font-size: 16px; opacity: 0.6;"></i>
+                                    </div>
+                                    ${otpDisplay}
+                                </div>
+                                <div class="history-footer">
+                                    <span>ID: ${order.order_id || '-'}</span>
+                                    <span>${order.created_at ? formatDate(order.created_at) : '-'}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = `<div class="empty-state"><i class="ph ph-ghost" style="font-size: 50px;"></i><p>Belum ada riwayat pesanan.</p></div>`;
+                }
+            } catch (err) {
+                container.innerHTML = `<div class="empty-state"><p>Gagal memuat riwayat pesanan.</p></div>`;
+            }
+        }
+
+        // 2. Ambil Riwayat Deposit (Isi Saldo)
+        async function loadDepositHistory() {
+            const container = document.getElementById('depositContainer');
+            try {
+                // Pastikan endpoint ini dibuat di backend (depositRoutes.js)
+                const res = await fetch('/api/deposit/history', { headers });
+                const json = await res.json();
+
+                if (json.success && json.data.length > 0) {
+                    container.innerHTML = '';
+                    json.data.reverse().forEach(dep => {
+                        let statusClass = 'status-pending';
+                        let statusText = 'Pending';
+                        
+                        if (dep.status === 'success' || dep.status === 'paid' || dep.status === 'completed') {
+                            statusClass = 'status-success'; statusText = 'Berhasil';
+                        } else if (dep.status === 'canceled' || dep.status === 'failed') {
+                            statusClass = 'status-canceled'; statusText = 'Gagal/Batal';
+                        }
+
+                        container.innerHTML += `
+                            <div class="history-card">
+                                <div class="history-header">
+                                    <div class="item-info">
+                                        <div class="icon-box"><i class="ph ph-wallet"></i></div>
+                                        <div>
+                                            <h4 style="margin: 0; font-size: 14px;">Top Up Saldo</h4>
+                                            <span style="font-size: 12px; opacity: 0.7;">${dep.method || 'QRIS/Transfer'}</span>
+                                        </div>
+                                    </div>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                </div>
+                                <div style="margin: 15px 0;">
+                                    <span style="font-size: 12px; opacity: 0.7;">Nominal:</span>
+                                    <h3 style="color: var(--text-color);">${formatRupiah(dep.amount || 0)}</h3>
+                                </div>
+                                <div class="history-footer">
+                                    <span>ID: ${dep.deposit_id || dep._id || '-'}</span>
+                                    <span>${dep.created_at ? formatDate(dep.created_at) : '-'}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = `<div class="empty-state"><i class="ph ph-wallet" style="font-size: 50px;"></i><p>Belum ada riwayat isi saldo.</p></div>`;
+                }
+            } catch (err) {
+                container.innerHTML = `<div class="empty-state"><p>Gagal memuat riwayat deposit.</p></div>`;
+            }
+        }
+
+        // Load tab pertama kali
+        switchTab('order');
+    </script>
+</body>
+</html>

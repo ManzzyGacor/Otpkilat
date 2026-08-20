@@ -84,36 +84,36 @@
             'Content-Type': 'application/json'
         };
 
-        // Verifikasi Admin, Ambil Saldo Pusat & Ambil Pengaturan dari MongoDB
-        async function loadAdminDashboard() {
-            try {
-                // 1. Cek Saldo Pusat
-                const resBalance = await fetch('/api/user/admin/balance', { headers });
-                const jsonBalance = await resBalance.json();
-                
-                if(resBalance.status === 403 || !jsonBalance.success) {
-                    Toastify({ text: "Akses Ditolak!", style: { background: "#ff3b30" } }).showToast();
-                    setTimeout(() => window.location.href = '/profile', 1500);
-                    return;
-                }
-
-                document.getElementById('adminContent').style.display = 'block';
-                document.getElementById('centerBalance').innerText = jsonBalance.data.formated;
-                document.getElementById('centerUsername').innerText = `Akun Utama: @${jsonBalance.data.username}`;
-
-                // 2. Ambil Setting dari Database
-                const resSettings = await fetch('/api/admin/settings', { headers });
-                const jsonSettings = await resSettings.json();
-
-                if (jsonSettings.success) {
-                    document.getElementById('marginProfit').value = jsonSettings.data.marginProfit;
-                    document.getElementById('announcementText').value = jsonSettings.data.announcement;
-                }
-                
-            } catch (err) {
-                Toastify({ text: "Gagal memuat data Admin", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
+async function loadAdminDashboard() {
+    try {
+        // 1. Cek Saldo Pusat
+        const resBalance = await fetch('/api/user/admin/balance', { headers });
+        const jsonBalance = await resBalance.json();
+        
+        if(resBalance.status === 403 || !jsonBalance.success) {
+            Toastify({ text: "Akses Ditolak / Bukan Admin!", style: { background: "#ff3b30" } }).showToast();
+            setTimeout(() => window.location.href = '/profile', 1500);
+            return;
         }
+
+        document.getElementById('adminContent').style.display = 'block';
+        document.getElementById('centerBalance').innerText = jsonBalance.data.formated || 'Rp0';
+        document.getElementById('centerUsername').innerText = `Akun Utama: @${jsonBalance.data.username || 'admin'}`;
+
+        // 2. Ambil Setting dari Database
+        const resSettings = await fetch('/api/admin/settings', { headers });
+        const jsonSettings = await resSettings.json();
+
+        if (jsonSettings.success) {
+            document.getElementById('marginProfit').value = jsonSettings.data.marginProfit;
+            document.getElementById('announcementText').value = jsonSettings.data.announcement;
+        }
+        
+    } catch (err) {
+        console.error("Error Detail:", err);
+        Toastify({ text: "Gagal memuat data Admin (Cek Console)", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+    }
+}
 
         // Simpan Pengaturan ke MongoDB
         document.getElementById('settingsForm').addEventListener('submit', async (e) => {
