@@ -37,6 +37,23 @@
             object-fit: contain;
             flex-shrink: 0;
         }
+        /* Style baru untuk kartu negara & harga yang lebih rapi */
+        .country-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(12px);
+        }
+        .pricelist-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--glass-border);
+        }
         .pagination-container {
             display: flex;
             justify-content: space-between;
@@ -95,7 +112,7 @@
                 <p style="opacity: 0.6; font-size: 14px;">Memuat daftar layanan...</p>
             </div>
 
-            <!-- Tombol Navigasi Pagination -->
+            <!-- Tombol Navigasi Pagination Aplikasi -->
             <div class="pagination-container" id="paginationControls" style="display: none;">
                 <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="prevBtn" onclick="changePage(-1)">Sebelumnya</button>
                 <span id="pageInfo" style="font-size: 13px; font-weight: 600;">Hal 1 dari 1</span>
@@ -103,14 +120,27 @@
             </div>
         </div>
 
-        <!-- Step 2: Pilih Negara & Pricelist Harga -->
+        <!-- Step 2: Pilih Negara & Pricelist Harga (Dengan Pagination) -->
         <div id="stepCountryContainer" style="display: none; margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <h3 id="selectedAppTitle" style="font-size: 16px; opacity: 0.8;">Pilih Negara</h3>
                 <button onclick="backToServices()" style="background: none; border: none; color: var(--active-color); cursor: pointer; font-weight: 600;">Ganti Layanan</button>
             </div>
-            <div id="countryList" style="display: flex; flex-direction: column; gap: 12px;">
+            
+            <!-- Kolom Search Negara -->
+            <div class="search-box" style="margin-bottom: 15px;">
+                <input type="text" id="searchCountry" placeholder="Cari nama negara..." onkeyup="filterCountries()">
+            </div>
+
+            <div id="countryList" style="display: flex; flex-direction: column; gap: 10px;">
                 <!-- Render negara & pilihan harga pricelist -->
+            </div>
+
+            <!-- Tombol Navigasi Pagination Negara -->
+            <div class="pagination-container" id="countryPaginationControls" style="display: none;">
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="countryPrevBtn" onclick="changeCountryPage(-1)">Sebelumnya</button>
+                <span id="countryPageInfo" style="font-size: 13px; font-weight: 600;">Hal 1 dari 1</span>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="countryNextBtn" onclick="changeCountryPage(1)">Selanjutnya</button>
             </div>
         </div>
 
@@ -175,7 +205,12 @@
         let allServices = [];
         let filteredServices = [];
         let currentPage = 1;
-        const itemsPerPage = 20; // Hanya render 20 aplikasi per halaman agar super ringan
+        const itemsPerPage = 20;
+
+        let allCountries = [];
+        let filteredCountries = [];
+        let currentCountryPage = 1;
+        const countriesPerPage = 10; // Batasi 10 negara per halaman agar ringan
 
         let selectedServiceName = '';
         let selectedServiceImg = '';
@@ -208,7 +243,6 @@
                 return;
             }
 
-            // Hitung potongan data untuk halaman aktif
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const paginatedItems = filteredServices.slice(startIndex, endIndex);
@@ -222,15 +256,12 @@
                 `;
             });
 
-            // Atur kontrol pagination
             const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
             if(totalPages > 1) {
                 document.getElementById('paginationControls').style.display = 'flex';
                 document.getElementById('pageInfo').innerText = `Hal ${currentPage} dari ${totalPages}`;
-                document.getElementById('prevBtn').disabled = currentPage === 1;
+                document.getElementById('prevBtndisabled').disabled = currentPage === 1;
                 document.getElementById('nextBtn').disabled = currentPage === totalPages;
-                document.getElementById('prevBtn').style.opacity = currentPage === 1 ? '0.4' : '1';
-                document.getElementById('nextBtn').style.opacity = currentPage === totalPages ? '0.4' : '1';
             } else {
                 document.getElementById('paginationControls').style.display = 'none';
             }
@@ -248,7 +279,7 @@
         function filterServices() {
             const keyword = document.getElementById('searchApp').value.toLowerCase();
             filteredServices = allServices.filter(s => s.service_name.toLowerCase().includes(keyword));
-            currentPage = 1; // Reset ke halaman pertama setiap mencari
+            currentPage = 1;
             renderPage();
         }
 
@@ -259,6 +290,7 @@
             document.getElementById('stepServiceContainer').style.display = 'none';
             document.getElementById('stepCountryContainer').style.display = 'block';
             document.getElementById('selectedAppTitle').innerText = `Pilih Negara - ${name}`;
+            document.getElementById('searchCountry').value = '';
             
             loadCountries(code);
         }
@@ -268,46 +300,97 @@
             document.getElementById('stepServiceContainer').style.display = 'block';
         }
 
-        // 2. Ambil Daftar Negara & Pilihan Pricelist Harga Sesuai Struktur API
+        // 2. Ambil Daftar Negara & Pricelist dengan Sistem Pagination & Tampilan Baru
         async function loadCountries(serviceId) {
             try {
                 const container = document.getElementById('countryList');
                 container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Memuat daftar negara & harga...</p>`;
+                document.getElementById('countryPaginationControls').style.display = 'none';
 
                 const res = await fetch(`/api/otp/countries?service_id=${serviceId}`, { headers });
                 const json = await res.json();
 
                 if(json.success) {
-                    container.innerHTML = '';
-                    json.data.forEach(c => {
-                        let pricelistHtml = '';
-                        if(c.pricelist && c.pricelist.length > 0) {
-                            c.pricelist.forEach(p => {
-                                pricelistHtml += `
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--glass-border);">
-                                        <div style="font-size: 13px;">
-                                            Stok: <b>${p.stock}</b> | Harga: <b style="color: #34c759;">${p.price_format}</b>
-                                        </div>
-                                        <button class="btn" style="width: auto; padding: 6px 14px; font-size: 13px;" onclick="orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
-                                    </div>
-                                `;
-                            });
-                        }
-
-                        container.innerHTML += `
-                            <div class="liquid-glass" style="padding: 15px;">
-                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                                    <img src="${c.img}" alt="${c.name}" width="26" style="border-radius: 4px;">
-                                    <span style="font-weight: 600; font-size: 15px;">${c.name} (${c.prefix})</span>
-                                </div>
-                                ${pricelistHtml}
-                            </div>
-                        `;
-                    });
+                    allCountries = json.data;
+                    filteredCountries = allCountries;
+                    currentCountryPage = 1;
+                    renderCountryPage();
                 }
             } catch (err) {
                 Toastify({ text: "Gagal memuat negara", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
             }
+        }
+
+        function renderCountryPage() {
+            const container = document.getElementById('countryList');
+            container.innerHTML = '';
+
+            if(filteredCountries.length === 0) {
+                container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Negara tidak ditemukan.</p>`;
+                document.getElementById('countryPaginationControls').style.display = 'none';
+                return;
+            }
+
+            const startIndex = (currentCountryPage - 1) * countriesPerPage;
+            const endIndex = startIndex + countriesPerPage;
+            const paginatedCountries = filteredCountries.slice(startIndex, endIndex);
+
+            paginatedCountries.forEach(c => {
+                let pricelistHtml = '';
+                if(c.pricelist && c.pricelist.length > 0) {
+                    c.pricelist.forEach(p => {
+                        pricelistHtml += `
+                            <div class="pricelist-row">
+                                <div style="font-size: 13px;">
+                                    Stok: <span style="font-weight: 600; color: var(--text-color);">${p.stock}</span> | 
+                                    Harga: <b style="color: #34c759; font-size: 14px;">${p.price_format}</b>
+                                </div>
+                                <button class="btn" style="width: auto; padding: 6px 16px; font-size: 13px; background: var(--active-color); color: var(--active-text);" onclick="orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
+                            </div>
+                        `;
+                    });
+                }
+
+                container.innerHTML += `
+                    <div class="country-card">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${c.img}" alt="${c.name}" width="30" style="border-radius: 6px; border: 1px solid var(--glass-border);">
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px;">${c.name}</div>
+                                <div style="font-size: 12px; opacity: 0.6;">Kode Prefix: ${c.prefix}</div>
+                            </div>
+                        </div>
+                        ${pricelistHtml}
+                    </div>
+                `;
+            });
+
+            // Atur Pagination Negara
+            const totalPages = Math.ceil(filteredCountries.length / countriesPerPage);
+            if(totalPages > 1) {
+                document.getElementById('countryPaginationControls').style.display = 'flex';
+                document.getElementById('countryPageInfo').innerText = `Hal ${currentCountryPage} dari ${totalPages}`;
+                document.getElementById('countryPrevBtn').disabled = currentCountryPage === 1;
+                document.getElementById('countryNextBtn').disabled = currentCountryPage === totalPages;
+            } else {
+                document.getElementById('countryPaginationControls').style.display = 'none';
+            }
+        }
+
+        function changeCountryPage(direction) {
+            const totalPages = Math.ceil(filteredCountries.length / countriesPerPage);
+            currentCountryPage += direction;
+            if(currentCountryPage < 1) currentCountryPage = 1;
+            if(currentCountryPage > totalPages) currentCountryPage = totalPages;
+            renderCountryPage();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function filterCountries() {
+            const keyword = document.getElementById('searchCountry').value.toLowerCase();
+            filteredCountries = allCountries.filter(c => c.name.toLowerCase().includes(keyword) || c.prefix.includes(keyword));
+            currentCountryPage = 1;
+            renderCountryPage();
         }
 
         // 3. Eksekusi Pemesanan Nomor
@@ -332,7 +415,6 @@
 
                     Toastify({ text: "Nomor berhasil didapatkan!", style: { background: "#34c759", borderRadius: "14px" } }).showToast();
 
-                    // Mulai polling cek status OTP setiap 5 detik
                     startPollingOtp(data.order_id);
                 } else {
                     Toastify({ text: json.message || "Gagal memesan nomor", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
@@ -342,14 +424,12 @@
             }
         }
 
-        // Salin Nomor Otomatis
         function copyPhoneNumber() {
             const num = document.getElementById('displayPhoneNumber').innerText;
             navigator.clipboard.writeText(num);
             Toastify({ text: "Nomor disalin ke clipboard!", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
         }
 
-        // 4. Polling Cek Status OTP
         function startPollingOtp(orderId) {
             if(otpInterval) clearInterval(otpInterval);
 
@@ -372,7 +452,6 @@
             }, 5000);
         }
 
-        // 5. Ubah Status Pesanan
         async function setOrderStatus(status) {
             if(!activeOrderId) return;
             try {
