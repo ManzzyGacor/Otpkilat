@@ -8,9 +8,12 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
+        .search-box {
+            margin-bottom: 20px;
+        }
         .service-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
             margin-bottom: 20px;
         }
@@ -18,21 +21,20 @@
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             border-radius: 16px;
-            padding: 15px 10px;
-            text-align: center;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .service-card.selected {
-            border-color: var(--active-color);
-            background: var(--active-color);
-            color: var(--active-text);
+        .service-card:hover {
+            transform: translateY(-2px);
         }
         .service-card img {
             width: 36px;
             height: 36px;
             object-fit: contain;
-            margin-bottom: 8px;
         }
         .number-display-box {
             background: linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 100%);
@@ -71,22 +73,25 @@
     <div class="container">
         <h2 style="margin-bottom: 20px;">Pesan Nomor Virtual</h2>
 
-        <!-- Step 1: Pilih Layanan -->
+        <!-- Step 1: Pilih Layanan dengan Search Bar -->
         <div id="stepServiceContainer">
+            <div class="search-box">
+                <input type="text" id="searchApp" placeholder="Cari nama aplikasi..." onkeyup="filterServices()">
+            </div>
             <h3 style="font-size: 16px; opacity: 0.8; margin-bottom: 12px;">Pilih Aplikasi</h3>
             <div class="service-grid" id="serviceGrid">
                 <p style="opacity: 0.6; font-size: 14px;">Memuat daftar layanan...</p>
             </div>
         </div>
 
-        <!-- Step 2: Pilih Negara & Pricelist -->
+        <!-- Step 2: Pilih Negara & Pricelist Harga -->
         <div id="stepCountryContainer" style="display: none; margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="font-size: 16px; opacity: 0.8;">Pilih Negara</h3>
+                <h3 id="selectedAppTitle" style="font-size: 16px; opacity: 0.8;">Pilih Negara</h3>
                 <button onclick="backToServices()" style="background: none; border: none; color: var(--active-color); cursor: pointer; font-weight: 600;">Ganti Layanan</button>
             </div>
-            <div id="countryList" style="display: flex; flex-direction: column; gap: 10px;">
-                <!-- Render negara & harga markup -->
+            <div id="countryList" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Render negara & pilihan harga pricelist -->
             </div>
         </div>
 
@@ -131,8 +136,8 @@
         <a href="/deposit" class="nav-item">
             <i class="ph ph-wallet"></i><span>Deposit</span>
         </a>
-        <a href="/order" class="nav-item active">
-            <i class="ph ph-shopping-cart"></i><span>Order</span>
+        <a href="/order" class="nav-item active" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 12px;">
+            <i class="ph ph-shopping-bag" style="font-size: 22px;"></i>
         </a>
         <a href="/riwayat" class="nav-item">
             <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
@@ -148,7 +153,7 @@
         if(!token) window.location.href = '/login';
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        let selectedServiceId = null;
+        let allServices = [];
         let selectedServiceName = '';
         let selectedServiceImg = '';
         let activeOrderId = null;
@@ -160,29 +165,45 @@
                 const res = await fetch('/api/otp/services', { headers });
                 const json = await res.json();
                 if(json.success) {
-                    const grid = document.getElementById('serviceGrid');
-                    grid.innerHTML = '';
-                    json.data.forEach(s => {
-                        grid.innerHTML += `
-                            <div class="service-card" onclick="selectService(${s.service_code}, '${s.service_name}', '${s.service_img}')">
-                                <img src="${s.service_img}" alt="${s.service_name}">
-                                <div style="font-size: 12px; font-weight: 600;">${s.service_name}</div>
-                            </div>
-                        `;
-                    });
+                    allServices = json.data;
+                    renderServices(allServices);
                 }
             } catch (err) {
                 Toastify({ text: "Gagal memuat layanan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
             }
         }
 
+        function renderServices(list) {
+            const grid = document.getElementById('serviceGrid');
+            grid.innerHTML = '';
+            if(list.length === 0) {
+                grid.innerHTML = `<p style="opacity: 0.6; font-size: 14px;">Aplikasi tidak ditemukan.</p>`;
+                return;
+            }
+            list.forEach(s => {
+                grid.innerHTML += `
+                    <div class="service-card" onclick="selectService(${s.service_code}, '${s.service_name}', '${s.service_img}')">
+                        <img src="${s.service_img}" alt="${s.service_name}">
+                        <div style="font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.service_name}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function filterServices() {
+            const keyword = document.getElementById('searchApp').value.toLowerCase();
+            const filtered = allServices.filter(s => s.service_name.toLowerCase().includes(keyword));
+            renderServices(filtered);
+        }
+
         async function selectService(code, name, img) {
-            selectedServiceId = code;
             selectedServiceName = name;
             selectedServiceImg = img;
 
             document.getElementById('stepServiceContainer').style.display = 'none';
             document.getElementById('stepCountryContainer').style.display = 'block';
+            document.getElementById('selectedAppTitle').innerText = `Pilih Negara - ${name}`;
+            
             loadCountries(code);
         }
 
@@ -191,30 +212,41 @@
             document.getElementById('stepServiceContainer').style.display = 'block';
         }
 
-        // 2. Ambil Daftar Negara (Harga sudah termasuk margin backend)
+        // 2. Ambil Daftar Negara & Pilihan Pricelist Harga Sesuai Struktur API
         async function loadCountries(serviceId) {
             try {
+                const container = document.getElementById('countryList');
+                container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Memuat daftar negara & harga...</p>`;
+
                 const res = await fetch(`/api/otp/countries?service_id=${serviceId}`, { headers });
                 const json = await res.json();
+
                 if(json.success) {
-                    const container = document.getElementById('countryList');
                     container.innerHTML = '';
                     json.data.forEach(c => {
+                        let pricelistHtml = '';
                         if(c.pricelist && c.pricelist.length > 0) {
-                            const p = c.pricelist[0]; // Ambil pricelist pertama
-                            container.innerHTML += `
-                                <div class="liquid-glass" style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 12px;">
-                                        <img src="${c.img}" alt="${c.name}" width="28" style="border-radius: 4px;">
-                                        <div>
-                                            <div style="font-weight: 600;">${c.name} (${c.prefix})</div>
-                                            <div style="font-size: 12px; opacity: 0.7;">Stok: ${p.stock} | Harga: <b>${p.price_format}</b></div>
+                            c.pricelist.forEach(p => {
+                                pricelistHtml += `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--glass-border);">
+                                        <div style="font-size: 13px;">
+                                            Stok: <b>${p.stock}</b> | Harga: <b style="color: #34c759;">${p.price_format}</b>
                                         </div>
+                                        <button class="btn" style="width: auto; padding: 6px 14px; font-size: 13px;" onclick="orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
                                     </div>
-                                    <button class="btn" style="width: auto; padding: 8px 16px; font-size: 14px;" onclick="orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
-                                </div>
-                            `;
+                                `;
+                            });
                         }
+
+                        container.innerHTML += `
+                            <div class="liquid-glass" style="padding: 15px;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                    <img src="${c.img}" alt="${c.name}" width="26" style="border-radius: 4px;">
+                                    <span style="font-weight: 600; font-size: 15px;">${c.name} (${c.prefix})</span>
+                                </div>
+                                ${pricelistHtml}
+                            </div>
+                        `;
                     });
                 }
             } catch (err) {
@@ -275,7 +307,7 @@
                             document.getElementById('otpStatusTitle').innerText = "✅ Kode OTP Diterima!";
                             document.getElementById('displayOtpCode').innerText = d.otp_code;
                             document.getElementById('displayOtpMsg').innerText = d.otp_msg || '';
-                            clearInterval(otpInterval); // Berhenti polling kalau sudah dapat
+                            clearInterval(otpInterval);
                         }
                     }
                 } catch (err) {

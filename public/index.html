@@ -3,29 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KilatOTP - Home</title>
+    <title>KilatOTP - Dashboard</title>
     <link rel="stylesheet" href="/css/style.css">
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Toastify CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .banner-card {
+            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 50%, #86a8e7 100%);
+            border-radius: 24px;
+            padding: 24px;
+            color: #ffffff;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .app-icon-row {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .app-mini-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+    </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="liquid-glass" style="padding: 24px; margin-top: 20px;">
-            <h2>Halo, <span id="userName">User</span> 👋</h2>
-            <p>Saldo: <strong id="userBalance">Rp0</strong></p>
+        <!-- Header User -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="Avatar" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
+                <div>
+                    <h3 id="userName" style="font-size: 16px;">Memuat...</h3>
+                    <p style="font-size: 12px; opacity: 0.7;">Selamat siang 🌤️</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="liquid-glass" style="border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color);" onclick="window.location.href='/profile'">
+                    <i class="ph ph-user" style="font-size: 18px;"></i>
+                </button>
+            </div>
         </div>
 
-        <h3 style="margin-top: 30px; margin-bottom: 15px;">Layanan Tersedia</h3>
-        <div class="liquid-glass" style="padding: 20px;" id="serviceList">
-            <!-- Data API NOKOS akan dirender di sini -->
-            <p>Memuat layanan...</p>
+        <!-- Kartu Saldo -->
+        <div class="liquid-glass" style="padding: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="font-size: 13px; opacity: 0.7; margin-bottom: 4px;">Saldo Kamu</p>
+                <h2 id="userBalance" style="font-size: 24px; font-weight: 700;">Rp0</h2>
+            </div>
+            <button class="btn" style="width: auto; padding: 10px 20px; background: #34c759;" onclick="window.location.href='/deposit'">
+                + Top Up
+            </button>
+        </div>
+
+        <!-- Banner Beli Nomor Virtual -->
+        <div class="banner-card">
+            <h2 style="font-size: 20px; margin-bottom: 5px;">Beli Nomor Virtual</h2>
+            <p style="font-size: 13px; opacity: 0.9; margin-bottom: 15px;">Platform digital lengkap untuk kebutuhan OTP yang cepat dan aman!</p>
+            
+            <div class="app-icon-row">
+                <div class="app-mini-icon"><i class="ph ph-whatsapp-logo"></i></div>
+                <div class="app-mini-icon"><i class="ph ph-telegram-logo"></i></div>
+                <div class="app-mini-icon"><i class="ph ph-facebook-logo"></i></div>
+                <div class="app-mini-icon">?</div>
+            </div>
+
+            <button class="btn" style="background: #ffffff; color: #000000; margin-top: 10px;" onclick="window.location.href='/order'">
+                Beli Nomor Sekarang <i class="ph ph-arrow-right" style="vertical-align: middle;"></i>
+            </button>
+        </div>
+
+        <!-- Pesanan Pending / Aktif -->
+        <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 16px;">Pesanan Aktif</h3>
+        <div class="liquid-glass" style="padding: 30px; text-align: center;">
+            <p style="opacity: 0.6; font-size: 14px;">Tidak ada pesanan aktif saat ini.</p>
         </div>
     </div>
 
-    <!-- Floating Bottom Navbar -->
+    <!-- Bottom Navbar Melingkar (iOS Style) -->
     <nav class="floating-nav liquid-glass">
         <a href="/" class="nav-item active">
             <i class="ph ph-house"></i>
@@ -35,9 +99,9 @@
             <i class="ph ph-wallet"></i>
             <span>Deposit</span>
         </a>
-        <a href="/order" class="nav-item">
-            <i class="ph ph-shopping-cart"></i>
-            <span>Order</span>
+        <!-- Tombol Tengah Menonjol -->
+        <a href="/order" class="nav-item" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 12px;">
+            <i class="ph ph-shopping-bag" style="font-size: 22px;"></i>
         </a>
         <a href="/riwayat" class="nav-item">
             <i class="ph ph-clock-counter-clockwise"></i>
@@ -49,34 +113,25 @@
         </a>
     </nav>
 
-    <!-- Toastify JS -->
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script>
-        // Contoh Notifikasi Smooth
-        function showNotif(msg) {
-            Toastify({
-                text: msg,
-                duration: 3000,
-                gravity: "top", 
-                position: "center",
-                style: {
-                    background: "var(--active-color)",
-                    color: "var(--active-text)",
-                    borderRadius: "14px",
-                    boxShadow: "0 4px 12px var(--glass-shadow)"
+        const token = localStorage.getItem('token');
+        if(!token) window.location.href = '/login';
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/user/me', { headers: { 'Authorization': `Bearer ${token}` } });
+                const json = await res.json();
+                if(json.success) {
+                    document.getElementById('userName').innerText = json.data.fullName;
+                    document.getElementById('userBalance').innerText = `Rp${json.data.balance.toLocaleString('id-ID')}`;
+                    document.getElementById('userAvatar').src = json.data.avatarUrl;
                 }
-            }).showToast();
-        }
-        
-        // Pengecekan token (contoh sederhana)
-        document.addEventListener("DOMContentLoaded", () => {
-            const token = localStorage.getItem('token');
-            if(!token) {
-                window.location.href = '/login';
-            } else {
-                showNotif("Berhasil memuat dashboard");
+            } catch (err) {
+                console.error("Gagal memuat data dashboard");
             }
-        });
+        }
+        loadDashboard();
     </script>
 </body>
 </html>
