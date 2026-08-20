@@ -1,5 +1,6 @@
 const axios = require('axios');
-const User = require('../models/User'); // Model User untuk update saldo
+const User = require('../models/User');
+const Deposit = require('../models/Deposit'); // Tambahkan import model Deposit
 const { sendTelegramNotif } = require('../utils/telegramBot');
 
 const getAxiosConfig = (endpoint, params = {}) => {
@@ -28,6 +29,16 @@ exports.createDeposit = async (req, res) => {
         if (response.data && response.data.success) {
             const data = response.data.data;
             const nominal = data.amount || data.total;
+            
+            // Simpan riwayat deposit berstatus pending ke database lokal
+            await Deposit.create({
+                user: req.user.id || req.user._id,
+                deposit_id: data.id,
+                amount: nominal,
+                method: data.method || payment_id,
+                status: 'pending'
+            });
+
             const notifMessage = `<b>Permintaan Deposit Baru!</b>\n\nID: <code>${data.id}</code>\nMetode: ${data.method || payment_id}\nNominal: Rp${nominal}`;
             await sendTelegramNotif(notifMessage);
         }
@@ -49,24 +60,29 @@ exports.checkDeposit = async (req, res) => {
 
         const response = await axios(getAxiosConfig(endpoint, { deposit_id }));
         
-        // Logika pengecekan dan penambahan saldo otomatis ke database lokal
         if (response.data && response.data.success) {
             const depositData = response.data.data;
+            const statusApi = depositData.status ? depositData.status.toLowerCase() : '';
             
-            // Sesuaikan kondisi status sukses dari API RumahOTP (misal: 'success', 'paid', atau 'completed')
-            if (depositData.status === 'success' || depositData.status === 'paid' || depositData.status === 'completed') {
-                const userId = req.user._id; // Diambil dari middleware auth JWT
+            if (statusApi === 'success' || statusApi === 'paid' || statusApi === 'completed') {
+                const userId = req.user.id || req.user._id;
                 const nominalDeposit = Number(depositData.amount || depositData.total || 0);
 
                 if (nominalDeposit > 0) {
-                    // Cek apakah user sudah pernah ditambahkan saldonya untuk deposit ID ini 
-                    // (Bisa dikembangkan dengan menyimpan riwayat deposit di database agar tidak double-claim)
-                    
-                    await User.findByIdAndUpdate(userId, {
-                        $inc: { balance: nominalDeposit }
-                    });
+                    // Cari data deposit lokal berdasarkan deposit_id
+                    let localDeposit = await Deposit.findOne({ deposit_id: deposit_id });
 
-                    await sendTelegramNotif(`<b>Deposit Berhasil!</b>\n\nID: <code>${deposit_id}</code>\nSaldo sebesar Rp${nominalDeposit} telah ditambahkan ke akun user.`);
+                    // Jika status di database lokal masih pending, update saldo user dan status deposit
+                    if (localDeposit && localDeposit.status !== 'success') {
+                        await User.findByIdAndUpdate(userId, {
+                            $inc: { balance: nominalDeposit }
+                        });
+
+                        localDeposit.status = 'success';
+                        await localDeposit.save();
+
+                        await sendTelegramNotif(`<b>Deposit Berhasil!</b>\n\nID: <code>${deposit_id}</code>\nSaldo sebesar Rp${nominalDeposit} telah ditambahkan ke akun user.`);
+                    }
                 }
             }
         }
@@ -79,8 +95,8 @@ exports.checkDeposit = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
     try {
-        // Mengambil data deposit dari database lokal berdasarkan ID user
-        const deposits = await Deposit.find({ user: req.user._id }).sort({ created_at: -1 });
+        const userId = req.user.id || req.user._id;
+        const deposits = await Deposit.find({ user: userId }).sort({ createdAt: -1 });
         
         res.status(200).json({ 
             success: true, 
@@ -99,6 +115,11 @@ exports.cancelDeposit = async (req, res) => {
     try {
         const { deposit_id } = req.query;
         const response = await axios(getAxiosConfig('/v1/deposit/cancel', { deposit_id }));
+        
+        if (response.data && response.data.success) {
+            await Deposit.findOneAndUpdate({ deposit_id: deposit_id }, { status: 'canceled' });
+        }
+
         res.status(200).json(response.data);
     } catch (error) {
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
