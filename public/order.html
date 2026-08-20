@@ -9,7 +9,7 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
         .search-box {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .service-grid {
             display: grid;
@@ -21,20 +21,28 @@
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             border-radius: 16px;
-            padding: 15px;
+            padding: 14px;
             display: flex;
             align-items: center;
             gap: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
-        .service-card:hover {
-            transform: translateY(-2px);
+        .service-card:active {
+            transform: scale(0.97);
         }
         .service-card img {
             width: 36px;
             height: 36px;
             object-fit: contain;
+            flex-shrink: 0;
+        }
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 30px;
         }
         .number-display-box {
             background: linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 100%);
@@ -73,14 +81,25 @@
     <div class="container">
         <h2 style="margin-bottom: 20px;">Pesan Nomor Virtual</h2>
 
-        <!-- Step 1: Pilih Layanan dengan Search Bar -->
+        <!-- Step 1: Pilih Layanan dengan Search & Pagination -->
         <div id="stepServiceContainer">
             <div class="search-box">
                 <input type="text" id="searchApp" placeholder="Cari nama aplikasi..." onkeyup="filterServices()">
             </div>
-            <h3 style="font-size: 16px; opacity: 0.8; margin-bottom: 12px;">Pilih Aplikasi</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="font-size: 16px; opacity: 0.8;">Pilih Aplikasi</h3>
+                <span id="totalAppCount" style="font-size: 12px; opacity: 0.6;">Memuat...</span>
+            </div>
+            
             <div class="service-grid" id="serviceGrid">
                 <p style="opacity: 0.6; font-size: 14px;">Memuat daftar layanan...</p>
+            </div>
+
+            <!-- Tombol Navigasi Pagination -->
+            <div class="pagination-container" id="paginationControls" style="display: none;">
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="prevBtn" onclick="changePage(-1)">Sebelumnya</button>
+                <span id="pageInfo" style="font-size: 13px; font-weight: 600;">Hal 1 dari 1</span>
+                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="nextBtn" onclick="changePage(1)">Selanjutnya</button>
             </div>
         </div>
 
@@ -154,6 +173,10 @@
         const headers = { 'Authorization': `Bearer ${token}` };
 
         let allServices = [];
+        let filteredServices = [];
+        let currentPage = 1;
+        const itemsPerPage = 20; // Hanya render 20 aplikasi per halaman agar super ringan
+
         let selectedServiceName = '';
         let selectedServiceImg = '';
         let activeOrderId = null;
@@ -166,21 +189,31 @@
                 const json = await res.json();
                 if(json.success) {
                     allServices = json.data;
-                    renderServices(allServices);
+                    filteredServices = allServices;
+                    document.getElementById('totalAppCount').innerText = `${allServices.length} Aplikasi`;
+                    renderPage();
                 }
             } catch (err) {
                 Toastify({ text: "Gagal memuat layanan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
             }
         }
 
-        function renderServices(list) {
+        function renderPage() {
             const grid = document.getElementById('serviceGrid');
             grid.innerHTML = '';
-            if(list.length === 0) {
-                grid.innerHTML = `<p style="opacity: 0.6; font-size: 14px;">Aplikasi tidak ditemukan.</p>`;
+
+            if(filteredServices.length === 0) {
+                grid.innerHTML = `<p style="opacity: 0.6; font-size: 14px; grid-column: span 2; text-align: center;">Aplikasi tidak ditemukan.</p>`;
+                document.getElementById('paginationControls').style.display = 'none';
                 return;
             }
-            list.forEach(s => {
+
+            // Hitung potongan data untuk halaman aktif
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedItems = filteredServices.slice(startIndex, endIndex);
+
+            paginatedItems.forEach(s => {
                 grid.innerHTML += `
                     <div class="service-card" onclick="selectService(${s.service_code}, '${s.service_name}', '${s.service_img}')">
                         <img src="${s.service_img}" alt="${s.service_name}">
@@ -188,12 +221,35 @@
                     </div>
                 `;
             });
+
+            // Atur kontrol pagination
+            const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+            if(totalPages > 1) {
+                document.getElementById('paginationControls').style.display = 'flex';
+                document.getElementById('pageInfo').innerText = `Hal ${currentPage} dari ${totalPages}`;
+                document.getElementById('prevBtn').disabled = currentPage === 1;
+                document.getElementById('nextBtn').disabled = currentPage === totalPages;
+                document.getElementById('prevBtn').style.opacity = currentPage === 1 ? '0.4' : '1';
+                document.getElementById('nextBtn').style.opacity = currentPage === totalPages ? '0.4' : '1';
+            } else {
+                document.getElementById('paginationControls').style.display = 'none';
+            }
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+            currentPage += direction;
+            if(currentPage < 1) currentPage = 1;
+            if(currentPage > totalPages) currentPage = totalPages;
+            renderPage();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function filterServices() {
             const keyword = document.getElementById('searchApp').value.toLowerCase();
-            const filtered = allServices.filter(s => s.service_name.toLowerCase().includes(keyword));
-            renderServices(filtered);
+            filteredServices = allServices.filter(s => s.service_name.toLowerCase().includes(keyword));
+            currentPage = 1; // Reset ke halaman pertama setiap mencari
+            renderPage();
         }
 
         async function selectService(code, name, img) {
@@ -316,7 +372,7 @@
             }, 5000);
         }
 
-        // 5. Ubah Status Pesanan (Konfirmasi atau Cancel dengan jeda 2 menit)
+        // 5. Ubah Status Pesanan
         async function setOrderStatus(status) {
             if(!activeOrderId) return;
             try {
