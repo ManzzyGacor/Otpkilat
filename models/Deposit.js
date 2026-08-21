@@ -11,6 +11,9 @@ const depositSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    depositId: {
+        type: String // Dummy opsional untuk menghentikan error E11000 index lama
+    },
     amount: {
         type: Number,
         required: true
