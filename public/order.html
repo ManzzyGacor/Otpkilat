@@ -223,14 +223,13 @@
         let allCountries = [];
         let filteredCountries = [];
         let currentCountryPage = 1;
-        const countriesPerPage = 12; // 12 negara per halaman
+        const countriesPerPage = 12;
 
         let selectedServiceName = '';
         let selectedServiceImg = '';
         let activeOrderId = null;
         let otpInterval = null;
 
-        // 1. Ambil Daftar Layanan
         async function loadServices() {
             try {
                 const res = await fetch('/api/otp/services', { headers });
@@ -313,7 +312,6 @@
             document.getElementById('stepServiceContainer').style.display = 'block';
         }
 
-        // 2. Ambil Daftar Negara (Harga disembunyikan sampai kartu negara diklik)
         async function loadCountries(serviceId) {
             try {
                 const container = document.getElementById('countryList');
@@ -352,13 +350,15 @@
                 let pricelistHtml = '';
                 if(c.pricelist && c.pricelist.length > 0) {
                     c.pricelist.forEach(p => {
+                        // Memastikan operator_id dikirim '1' (any) secara default
+                        const operatorId = p.operator_id || 1;
                         pricelistHtml += `
                             <div class="pricelist-row">
                                 <div style="font-size: 13px;">
                                     Stok: <span style="font-weight: 600;">${p.stock}</span> | 
                                     Harga: <b style="color: #34c759;">${p.price_format}</b>
                                 </div>
-                                <button class="btn" style="width: auto; padding: 6px 14px; font-size: 12px; background: var(--active-color); color: var(--active-text);" onclick="event.stopPropagation(); orderNumber(${p.number_id || 0}, ${p.provider_id}, 1)">Pesan</button>
+                                <button class="btn" style="width: auto; padding: 6px 14px; font-size: 12px; background: var(--active-color); color: var(--active-text);" onclick="event.stopPropagation(); orderNumber(${p.number_id || 0}, ${p.provider_id}, ${operatorId})">Pesan</button>
                             </div>
                         `;
                     });
@@ -396,7 +396,6 @@
             }
         }
 
-        // Fungsi Dropdown Klik Kartu Negara untuk Munculkan Harga
         function togglePricelist(index) {
             const container = document.getElementById(`pricelist-${index}`);
             const icon = document.getElementById(`icon-${index}`);
@@ -426,11 +425,10 @@
             renderCountryPage();
         }
 
-        // 3. Eksekusi Pemesanan Nomor
         async function orderNumber(numberId, providerId, operatorId) {
             try {
                 Toastify({ text: "Memesan nomor...", style: { background: "#007AFF", borderRadius: "14px" } }).showToast();
-                const res = await fetch(`/api/otp/order?number_id=${numberId}&provider_id=${providerId}&operator_id=${operatorId}`, { headers });
+                const res = await fetch(`/api/otp/order?number_id=${numberId}&provider_id=${providerId}&operator_id=${operatorId || 1}`, { headers });
                 const json = await res.json();
 
                 if(json.success) {
