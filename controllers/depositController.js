@@ -29,16 +29,18 @@ exports.createDeposit = async (req, res) => {
         if (response.data && response.data.success) {
             const data = response.data.data;
             const nominal = data.amount || data.total;
+            const transId = data.id || data.deposit_id; // Simpan ID dalam satu variabel
             
+            // Simpan menggunakan 'depositId' agar tidak duplikat/null
             await Deposit.create({
                 user: req.user.id || req.user._id,
-                deposit_id: data.id || data.deposit_id,
+                depositId: transId,
                 amount: nominal,
                 method: data.method || payment_id,
                 status: 'pending'
             });
 
-            const notifMessage = `<b>Permintaan Deposit Baru!</b>\n\nID: <code>${data.id || data.deposit_id}</code>\nMetode: ${data.method || payment_id}\nNominal: Rp${nominal}`;
+            const notifMessage = `<b>Permintaan Deposit Baru!</b>\n\nID: <code>${transId}</code>\nMetode: ${data.method || payment_id}\nNominal: Rp${nominal}`;
             await sendTelegramNotif(notifMessage);
         }
 
@@ -69,7 +71,8 @@ exports.checkDeposit = async (req, res) => {
                 const nominalDeposit = Number(depositData.amount || depositData.total || 0);
 
                 if (nominalDeposit > 0) {
-                    let localDeposit = await Deposit.findOne({ deposit_id: deposit_id });
+                    // Cari berdasarkan depositId
+                    let localDeposit = await Deposit.findOne({ depositId: deposit_id });
 
                     if (localDeposit && localDeposit.status !== 'success') {
                         await User.findByIdAndUpdate(userId, {
@@ -110,7 +113,8 @@ exports.cancelDeposit = async (req, res) => {
         const response = await axios(getAxiosConfig('/v1/deposit/cancel', { deposit_id }));
         
         if (response.data && response.data.success) {
-            await Deposit.findOneAndUpdate({ deposit_id: deposit_id }, { status: 'canceled' });
+            // Update berdasarkan depositId
+            await Deposit.findOneAndUpdate({ depositId: deposit_id }, { status: 'canceled' });
         }
 
         res.status(200).json(response.data);
