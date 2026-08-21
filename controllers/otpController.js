@@ -30,6 +30,7 @@ exports.getServices = async (req, res) => {
         const response = await axios(getAxiosConfig('/v2/services'));
         res.status(200).json(response.data);
     } catch (error) {
+        console.error("[SERVICES ERROR]", error.response ? error.response.data : error.message);
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
     }
 };
@@ -56,6 +57,7 @@ exports.getCountries = async (req, res) => {
         }
         res.status(200).json(response.data);
     } catch (error) {
+        console.error("[COUNTRIES ERROR]", error.response ? error.response.data : error.message);
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
     }
 };
@@ -66,27 +68,25 @@ exports.getOperators = async (req, res) => {
         const response = await axios(getAxiosConfig('/v2/operators', { country, provider_id }));
         res.status(200).json(response.data);
     } catch (error) {
+        console.error("[OPERATORS ERROR]", error.response ? error.response.data : error.message);
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
     }
 };
 
 exports.orderNumber = async (req, res) => {
     try {
-        // Berikan default operator_id = 1 ('any') jika tidak dikirim dari frontend
         const { number_id, provider_id, operator_id = 1 } = req.query;
-        const userId = req.user.id;
+        const userId = req.user.id || req.user._id;
+
+        console.log(`[ORDER REQUEST] Mencoba pesan nomor: number_id=${number_id}, provider_id=${provider_id}, operator_id=${operator_id}`);
 
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
         }
 
-        // Kirim parameter lengkap termasuk operator_id ke API V2 RumahOTP
-        const response = await axios(getAxiosConfig('/v2/orders', { 
-            number_id, 
-            provider_id, 
-            operator_id 
-        }));
+        const response = await axios(getAxiosConfig('/v2/orders', { number_id, provider_id, operator_id }));
+        console.log(`[ORDER API RESPONSE]`, response.data);
         
         if (response.data && response.data.success) {
             const data = response.data.data;
@@ -95,15 +95,14 @@ exports.orderNumber = async (req, res) => {
             const sellingPrice = Math.ceil(originalPrice + (originalPrice * margin / 100));
 
             if (user.balance < sellingPrice) {
+                console.warn(`[ORDER FAILED] Saldo user tidak cukup. Saldo: ${user.balance}, Harga: ${sellingPrice}`);
                 await axios(getAxiosConfig('/v1/orders/set_status', { order_id: data.order_id, status: 'cancel' }));
                 return res.status(400).json({ success: false, message: 'Saldo KilatOTP Anda tidak mencukupi.' });
             }
 
-            // Potong saldo user
             user.balance -= sellingPrice;
             await user.save();
 
-            // Simpan riwayat pesanan ke Database lokal
             await Order.create({
                 user: userId,
                 orderId: data.order_id,
@@ -125,6 +124,7 @@ exports.orderNumber = async (req, res) => {
 
         res.status(200).json(response.data);
     } catch (error) {
+        console.error("[ORDER ERROR MENTAH]", error.response ? error.response.data : error.message);
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
     }
 };
@@ -135,6 +135,7 @@ exports.checkOrder = async (req, res) => {
         const response = await axios(getAxiosConfig('/v1/orders/get_status', { order_id }));
         res.status(200).json(response.data);
     } catch (error) {
+        console.error("[CHECK ORDER ERROR]", error.response ? error.response.data : error.message);
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
     }
 };
@@ -142,7 +143,9 @@ exports.checkOrder = async (req, res) => {
 exports.setOrderStatus = async (req, res) => {
     try {
         const { order_id, status } = req.query;
-        const userId = req.user.id;
+        const userId = req.user.id || req.user._id;
+
+        console.log(`[SET STATUS] Order ID: ${order_id}, Status baru: ${status}`);
 
         if (status === 'cancel') {
             const order = await Order.findOne({ orderId: order_id, user: userId });
@@ -170,6 +173,7 @@ exports.setOrderStatus = async (req, res) => {
                     await user.save();
                     order.status = 'canceled';
                     await order.save();
+                    console.log(`[ORDER CANCELLED] Saldo user direfund sebesar Rp${order.price}`);
                 }
             }
             return res.status(200).json(response.data);
@@ -179,16 +183,17 @@ exports.setOrderStatus = async (req, res) => {
         await Order.findOneAndUpdate({ orderId: order_id }, { status: status === 'done' ? 'completed' : status });
         res.status(200).json(response.data);
     } catch (error) {
+        console.error("[SET STATUS ERROR]", error.response ? error.response.data : error.message);
         res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
     }
 };
 
 exports.getHistory = async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user.id }).sort({ createdAtTimestamp: -1 });
+        const orders = await Order.find({ user: req.user.id || req.user._id }).sort({ createdAtTimestamp: -1 });
         res.status(200).json({ success: true, data: orders });
     } catch (error) {
-        console.error("Error getHistory OTP:", error);
+        console.error("[ORDER HISTORY ERROR]", error.message);
         res.status(500).json({ success: false, message: "Gagal memuat riwayat pesanan." });
     }
 };
