@@ -7,6 +7,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const otpRoutes = require('./routes/otpRoutes');
 const depositRoutes = require('./routes/depositRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/deposit', depositRoutes);
 app.use('/api/user', require('./routes/userRoutes'));
+app.use('/api/admin', adminRoutes);
 
 const PORT = process.env.PORT || 3000;
 
