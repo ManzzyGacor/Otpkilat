@@ -188,12 +188,63 @@ exports.setOrderStatus = async (req, res) => {
     }
 };
 
+// Fungsi untuk mengecek order yang sedang berjalan (aktif) & Batal Otomatis 20 Menit
+exports.getActiveOrder = async (req, res) => {
+    try {
+        const userId = req.user.id || req.user._id;
+        // Cari order yang masih 'received' atau 'pending'
+        const activeOrder = await Order.findOne({ user: userId, status: { $in: ['received', 'pending'] } }).sort({ createdAtTimestamp: -1 });
+
+        if (activeOrder) {
+            const currentTime = Date.now();
+            const timeDifferenceInMinutes = (currentTime - activeOrder.createdAtTimestamp) / (1000 * 60);
+
+            // AUTO-CANCEL 20 MENIT
+            if (timeDifferenceInMinutes >= 20) {
+                if (activeOrder.status !== 'canceled') {
+                    // Refund saldo
+                    const user = await User.findById(userId);
+                    user.balance += activeOrder.price;
+                    await user.save();
+                    
+                    activeOrder.status = 'canceled';
+                    await activeOrder.save();
+                }
+                return res.status(200).json({ success: true, data: null }); // Beri tahu frontend tidak ada order aktif
+            }
+
+            return res.status(200).json({ success: true, data: activeOrder });
+        }
+
+        res.status(200).json({ success: true, data: null });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Gagal memuat order aktif." });
+    }
+};
+
+// UPDATE fungsi getHistory agar Riwayat juga tersinkron dengan Auto-Cancel 20 Menit
 exports.getHistory = async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user.id || req.user._id }).sort({ createdAtTimestamp: -1 });
+        const userId = req.user.id || req.user._id;
+        const orders = await Order.find({ user: userId }).sort({ createdAtTimestamp: -1 });
+        
+        const currentTime = Date.now();
+        // Cek satu-satu untuk order yang menggantung lebih dari 20 menit
+        for (let order of orders) {
+            if (order.status === 'received' || order.status === 'pending') {
+                const diffMins = (currentTime - order.createdAtTimestamp) / (1000 * 60);
+                if (diffMins >= 20) {
+                    const user = await User.findById(userId);
+                    user.balance += order.price;
+                    await user.save();
+                    order.status = 'canceled';
+                    await order.save();
+                }
+            }
+        }
+
         res.status(200).json({ success: true, data: orders });
     } catch (error) {
-        console.error("[ORDER HISTORY ERROR]", error.message);
         res.status(500).json({ success: false, message: "Gagal memuat riwayat pesanan." });
     }
 };
