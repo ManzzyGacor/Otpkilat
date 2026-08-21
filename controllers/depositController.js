@@ -29,12 +29,13 @@ exports.createDeposit = async (req, res) => {
         if (response.data && response.data.success) {
             const data = response.data.data;
             const nominal = data.amount || data.total;
-            const transId = data.id || data.deposit_id; // Simpan ID dalam satu variabel
+            const transId = data.id || data.deposit_id;
             
-            // Simpan menggunakan 'depositId' agar tidak duplikat/null
+            // Simpan riwayat deposit dengan KEDUA format penamaan
             await Deposit.create({
                 user: req.user.id || req.user._id,
-                depositId: transId,
+                deposit_id: transId, // Wajib untuk Skema Mongoose
+                depositId: transId,  // Wajib untuk mengakali Index Database MongoDB lama
                 amount: nominal,
                 method: data.method || payment_id,
                 status: 'pending'
@@ -71,8 +72,8 @@ exports.checkDeposit = async (req, res) => {
                 const nominalDeposit = Number(depositData.amount || depositData.total || 0);
 
                 if (nominalDeposit > 0) {
-                    // Cari berdasarkan depositId
-                    let localDeposit = await Deposit.findOne({ depositId: deposit_id });
+                    // Cari berdasarkan deposit_id
+                    let localDeposit = await Deposit.findOne({ deposit_id: deposit_id });
 
                     if (localDeposit && localDeposit.status !== 'success') {
                         await User.findByIdAndUpdate(userId, {
@@ -113,8 +114,8 @@ exports.cancelDeposit = async (req, res) => {
         const response = await axios(getAxiosConfig('/v1/deposit/cancel', { deposit_id }));
         
         if (response.data && response.data.success) {
-            // Update berdasarkan depositId
-            await Deposit.findOneAndUpdate({ depositId: deposit_id }, { status: 'canceled' });
+            // Update berdasarkan deposit_id
+            await Deposit.findOneAndUpdate({ deposit_id: deposit_id }, { status: 'canceled' });
         }
 
         res.status(200).json(response.data);
