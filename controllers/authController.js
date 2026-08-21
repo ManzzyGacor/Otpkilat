@@ -18,7 +18,7 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         let assignedRole = 'user';
-        if (username.toLowerCase() === 'man') {
+        if (username && username.toLowerCase() === 'man') {
             assignedRole = 'admin';
         }
 
@@ -42,6 +42,9 @@ exports.register = async (req, res) => {
             }
         });
     } catch (error) {
+        // CETAK ERROR ASLI KE TERMINAL VPS
+        console.error("[REGISTER ERROR DETAIL]:", error);
+        
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan pada server saat registrasi.",
@@ -49,7 +52,6 @@ exports.register = async (req, res) => {
         });
     }
 };
-
 exports.login = async (req, res) => {
     try {
         const { username, password } = req.body;
