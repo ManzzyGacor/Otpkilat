@@ -4,13 +4,14 @@ const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
     try {
-        const { fullName, username, phoneNumber, password } = req.body;
+        const { fullName, username, email, phoneNumber, password } = req.body;
 
-        const existingUser = await User.findOne({ $or: [{ username }, { phoneNumber }] });
+        // Cek apakah username, email, atau phoneNumber sudah terdaftar
+        const existingUser = await User.findOne({ $or: [{ username }, { email }, { phoneNumber }] });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
-                message: "Username atau nomor HP sudah terdaftar."
+                message: "Username, Email, atau Nomor HP sudah terdaftar."
             });
         }
 
@@ -25,6 +26,7 @@ exports.register = async (req, res) => {
         const newUser = new User({
             fullName,
             username,
+            email,
             phoneNumber,
             password: hashedPassword,
             role: assignedRole
@@ -38,13 +40,12 @@ exports.register = async (req, res) => {
             data: {
                 id: newUser._id,
                 username: newUser.username,
+                email: newUser.email,
                 role: newUser.role
             }
         });
     } catch (error) {
-        // CETAK ERROR ASLI KE TERMINAL VPS
         console.error("[REGISTER ERROR DETAIL]:", error);
-        
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan pada server saat registrasi.",
@@ -52,6 +53,7 @@ exports.register = async (req, res) => {
         });
     }
 };
+
 exports.login = async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -102,6 +104,77 @@ exports.login = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan pada server saat login.",
+            error: error.message
+        });
+    }
+};
+
+exports.googleAuth = async (req, res) => {
+    try {
+        const { googleId, email, fullName, username } = req.body;
+        
+        let user = await User.findOne({ googleId });
+        if (!user) {
+            if (email) {
+                user = await User.findOne({ email });
+            }
+            
+            if (user) {
+                user.googleId = googleId;
+                await user.save();
+            } else {
+                const generatedUsername = username || (email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : 'user_' + Date.now());
+                const randomPassword = await bcrypt.hash(Math.random().toString(), 10);
+                
+                let assignedRole = 'user';
+                if (generatedUsername.toLowerCase() === 'man') {
+                    assignedRole = 'admin';
+                }
+
+                user = new User({
+                    fullName: fullName || 'Google User',
+                    username: generatedUsername,
+                    email: email || `${generatedUsername}@google.com`,
+                    phoneNumber: 'g_' + Date.now(),
+                    password: randomPassword,
+                    googleId: googleId,
+                    role: assignedRole
+                });
+                await user.save();
+            }
+        }
+
+        const payload = {
+            user: {
+                id: user._id,
+                role: user.role
+            }
+        };
+
+        jwt.sign(
+            payload,
+            process.env.SESSION_SECRET,
+            { expiresIn: '24h' },
+            (err, token) => {
+                if (err) throw err;
+                res.status(200).json({
+                    success: true,
+                    message: "Login Google berhasil.",
+                    token: token,
+                    user: {
+                        username: user.username,
+                        role: user.role,
+                        balance: user.balance,
+                        avatarUrl: user.avatarUrl
+                    }
+                });
+            }
+        );
+    } catch (error) {
+        console.error("[GOOGLE AUTH ERROR]:", error);
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan pada server saat Google Auth.",
             error: error.message
         });
     }
