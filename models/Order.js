@@ -19,6 +19,10 @@ const orderSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    serviceImg: {
+        type: String, // Menampung URL gambar logo layanan
+        default: 'https://assets.cindigital.id/apps/other.png'
+    },
     country: {
         type: String,
         required: true
@@ -26,6 +30,10 @@ const orderSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: true
+    },
+    otpCode: {
+        type: String, // Menampung kode OTP yang berhasil diterima
+        default: null
     },
     status: {
         type: String,
