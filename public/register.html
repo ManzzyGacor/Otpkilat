@@ -22,6 +22,9 @@
                     <input type="text" id="username" placeholder="Username" required>
                 </div>
                 <div class="form-group">
+                    <input type="email" id="email" placeholder="Alamat Email" required>
+                </div>
+                <div class="form-group">
                     <input type="tel" id="phoneNumber" placeholder="Nomor Handphone (Contoh: 0812...)" required>
                 </div>
                 <div class="form-group">
@@ -49,6 +52,7 @@
             e.preventDefault();
             const fullName = document.getElementById('fullName').value;
             const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
             const phoneNumber = document.getElementById('phoneNumber').value;
             const password = document.getElementById('password').value;
 
@@ -56,7 +60,7 @@
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fullName, username, phoneNumber, password })
+                    body: JSON.stringify({ fullName, username, email, phoneNumber, password })
                 });
 
                 const data = await response.json();
