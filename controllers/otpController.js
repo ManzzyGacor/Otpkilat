@@ -117,8 +117,8 @@ exports.orderNumber = async (req, res) => {
             data.price = sellingPrice;
             data.price_formated = formatRupiah(sellingPrice);
 
-            const profit = sellingPrice - originalPrice;
-            const notifMessage = `<b>Pesanan NOKOS Baru!</b>\n\nUser: @${user.username}\nID: <code>${data.order_id}</code>\nLayanan: ${data.service}\nNegara: ${data.country}\nHarga Jual: Rp${sellingPrice}\nProfit: Rp${profit}\nNomor: <code>${data.phone_number}</code>`;
+            // NOTIFIKASI TELEGRAM (PROFIT DIHAPUS)
+            const notifMessage = `<b>Pesanan NOKOS Baru!</b>\n\nUser: @${user.username}\nID: <code>${data.order_id}</code>\nLayanan: ${data.service}\nNegara: ${data.country}\nHarga Jual: Rp${sellingPrice}\nNomor: <code>${data.phone_number}</code>`;
             await sendTelegramNotif(notifMessage);
         }
 
@@ -133,6 +133,20 @@ exports.checkOrder = async (req, res) => {
     try {
         const { order_id } = req.query;
         const response = await axios(getAxiosConfig('/v1/orders/get_status', { order_id }));
+        
+        if (response.data && response.data.success && response.data.data) {
+            const d = response.data.data;
+            if (d.otp_code) {
+                await Order.findOneAndUpdate(
+                    { orderId: order_id },
+                    { 
+                        otpCode: d.otp_code, 
+                        status: d.status === 'completed' ? 'completed' : 'received' 
+                    }
+                );
+            }
+        }
+
         res.status(200).json(response.data);
     } catch (error) {
         console.error("[CHECK ORDER ERROR]", error.response ? error.response.data : error.message);
@@ -179,8 +193,23 @@ exports.setOrderStatus = async (req, res) => {
             return res.status(200).json(response.data);
         }
 
+        // UNTUK STATUS SELESAI (DONE / COMPLETED)
         const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
-        await Order.findOneAndUpdate({ orderId: order_id }, { status: status === 'done' ? 'completed' : status });
+        
+        if (response.data && response.data.success) {
+            const updatedOrder = await Order.findOneAndUpdate(
+                { orderId: order_id }, 
+                { status: status === 'done' ? 'completed' : status },
+                { new: true }
+            ).populate('user', 'username');
+
+            // KIRIM NOTIFIKASI TELEGRAM JIKA PESANAN SELESAI
+            if (status === 'done' && updatedOrder) {
+                const doneMsg = `<b>Pesanan NOKOS Selesai! ✅</b>\n\nUser: @${updatedOrder.user ? updatedOrder.user.username : 'User'}\nID: <code>${order_id}</code>\nLayanan: ${updatedOrder.service}\nNomor: <code>${updatedOrder.phoneNumber}</code>`;
+                await sendTelegramNotif(doneMsg);
+            }
+        }
+
         res.status(200).json(response.data);
     } catch (error) {
         console.error("[SET STATUS ERROR]", error.response ? error.response.data : error.message);
@@ -188,48 +217,42 @@ exports.setOrderStatus = async (req, res) => {
     }
 };
 
-// Fungsi untuk mengecek order yang sedang berjalan (aktif) & Batal Otomatis 20 Menit
 exports.getActiveOrder = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
-        // Cari order yang masih 'received' atau 'pending'
-        const activeOrder = await Order.findOne({ user: userId, status: { $in: ['received', 'pending'] } }).sort({ createdAtTimestamp: -1 });
+        const activeOrders = await Order.find({ user: userId, status: { $in: ['received', 'pending'] } }).sort({ createdAtTimestamp: -1 });
 
-        if (activeOrder) {
-            const currentTime = Date.now();
-            const timeDifferenceInMinutes = (currentTime - activeOrder.createdAtTimestamp) / (1000 * 60);
+        let validOrders = [];
+        const currentTime = Date.now();
 
-            // AUTO-CANCEL 20 MENIT
+        for (let order of activeOrders) {
+            const timeDifferenceInMinutes = (currentTime - order.createdAtTimestamp) / (1000 * 60);
+            
             if (timeDifferenceInMinutes >= 20) {
-                if (activeOrder.status !== 'canceled') {
-                    // Refund saldo
+                if (order.status !== 'canceled') {
                     const user = await User.findById(userId);
-                    user.balance += activeOrder.price;
+                    user.balance += order.price;
                     await user.save();
-                    
-                    activeOrder.status = 'canceled';
-                    await activeOrder.save();
+                    order.status = 'canceled';
+                    await order.save();
                 }
-                return res.status(200).json({ success: true, data: null }); // Beri tahu frontend tidak ada order aktif
+            } else {
+                validOrders.push(order);
             }
-
-            return res.status(200).json({ success: true, data: activeOrder });
         }
 
-        res.status(200).json({ success: true, data: null });
+        res.status(200).json({ success: true, data: validOrders });
     } catch (error) {
         res.status(500).json({ success: false, message: "Gagal memuat order aktif." });
     }
 };
 
-// UPDATE fungsi getHistory agar Riwayat juga tersinkron dengan Auto-Cancel 20 Menit
 exports.getHistory = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
         const orders = await Order.find({ user: userId }).sort({ createdAtTimestamp: -1 });
         
         const currentTime = Date.now();
-        // Cek satu-satu untuk order yang menggantung lebih dari 20 menit
         for (let order of orders) {
             if (order.status === 'received' || order.status === 'pending') {
                 const diffMins = (currentTime - order.createdAtTimestamp) / (1000 * 60);
