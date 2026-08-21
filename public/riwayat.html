@@ -60,6 +60,8 @@
             height: 36px;
             object-fit: contain;
             border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            padding: 4px;
         }
         .icon-box {
             width: 36px;
@@ -124,7 +126,7 @@
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" style="padding-bottom: 90px;">
         <h2 style="margin-bottom: 20px;">Riwayat Transaksi</h2>
 
         <!-- Segmented Control (Tabs) -->
@@ -135,12 +137,12 @@
 
         <!-- Kontainer Pesanan OTP -->
         <div id="orderContainer">
-            <p style="opacity: 0.6; text-align: center; margin-top: 30px;">Memuat riwayat pesanan...</p>
+            <p style="opacity: 0.6; text-align: center; margin-top: 30px;"><i class="ph-spin ph-spinner-gap" style="font-size: 24px;"></i><br>Memuat riwayat...</p>
         </div>
 
         <!-- Kontainer Isi Saldo (Deposit) -->
         <div id="depositContainer" style="display: none;">
-            <p style="opacity: 0.6; text-align: center; margin-top: 30px;">Memuat riwayat deposit...</p>
+            <p style="opacity: 0.6; text-align: center; margin-top: 30px;"><i class="ph-spin ph-spinner-gap" style="font-size: 24px;"></i><br>Memuat riwayat deposit...</p>
         </div>
     </div>
 
@@ -155,8 +157,8 @@
         <a href="/order" class="nav-item">
             <i class="ph ph-shopping-bag"></i><span>Order</span>
         </a>
-        <a href="/riwayat" class="nav-item active" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 12px;">
-            <i class="ph ph-clock-counter-clockwise" style="font-size: 22px;"></i>
+        <a href="/riwayat" class="nav-item active" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 12px; box-shadow: 0 5px 15px rgba(0, 122, 255, 0.4); transform: translateY(-5px);">
+            <i class="ph-fill ph-clock-counter-clockwise" style="font-size: 24px;"></i>
         </a>
         <a href="/profile" class="nav-item">
             <i class="ph ph-user"></i><span>Profile</span>
@@ -171,6 +173,7 @@
 
         // Format Tanggal & Rupiah
         const formatDate = (dateString) => {
+            if(!dateString) return '-';
             const options = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
             return new Date(dateString).toLocaleDateString('id-ID', options);
         };
@@ -199,7 +202,7 @@
             }
         }
 
-        // 1. Ambil Riwayat Pesanan OTP
+        // 1. Ambil Riwayat Pesanan OTP (Perbaikan Properti Objek)
         async function loadOrderHistory() {
             const container = document.getElementById('orderContainer');
             try {
@@ -208,47 +211,67 @@
 
                 if (json.success && json.data.length > 0) {
                     container.innerHTML = '';
-                    json.data.reverse().forEach(order => {
+                    
+                    // Kita tidak perlu menggunakan array.reverse() jika backend sudah sort({ createdAtTimestamp: -1 })
+                    json.data.forEach(order => {
                         let statusClass = 'status-pending';
                         let statusText = 'Pending';
                         
-                        if (order.status === 'completed' || order.status === 'done') {
+                        // Mapping status
+                        if (order.status === 'completed' || order.status === 'done' || order.status === 'success') {
                             statusClass = 'status-success'; statusText = 'Selesai';
-                        } else if (order.status === 'canceled' || order.status === 'refunded') {
+                        } else if (order.status === 'canceled' || order.status === 'refunded' || order.status === 'failed') {
                             statusClass = 'status-canceled'; statusText = 'Batal';
                         }
 
-                        const otpDisplay = order.otp_code 
-                            ? `<div class="otp-text">OTP: ${order.otp_code} <i class="ph ph-copy" style="cursor:pointer;" onclick="copyToClipboard('${order.otp_code}')"></i></div>` 
-                            : `<div style="font-size: 12px; opacity: 0.5; margin-top: 5px;">Belum ada SMS</div>`;
+                        // Jika otpCode belum tersimpan di DB lokal, beri teks default untuk status Selesai
+                        let otpDisplay = `<div style="font-size: 12px; opacity: 0.5; margin-top: 5px;">Menunggu/Tidak Tersedia</div>`;
+                        if(statusText === 'Selesai') {
+                            otpDisplay = `<div class="otp-text" style="font-size: 12px; color: var(--text-color); opacity: 0.7;">OTP diterima di sesi aktif.</div>`;
+                        }
+                        if(order.otpCode || order.otp_code) {
+                             const theCode = order.otpCode || order.otp_code;
+                             otpDisplay = `<div class="otp-text">OTP: ${theCode} <i class="ph ph-copy" style="cursor:pointer;" onclick="copyToClipboard('${theCode}')"></i></div>`;
+                        }
+
+                        // Ambil field sesuai skema: order.service, order.phoneNumber, order.orderId
+                        const serviceName = order.service || 'Layanan Anonim';
+                        const countryName = order.country || 'Global';
+                        const phoneNumber = order.phoneNumber || '-';
+                        const orderId = order.orderId || '-';
+                        const dateData = order.createdAt || order.createdAtTimestamp;
+                        const priceFmt = order.price ? formatRupiah(order.price) : '-';
 
                         container.innerHTML += `
                             <div class="history-card">
                                 <div class="history-header">
                                     <div class="item-info">
-                                        <img src="${order.service_img || 'https://assets.cindigital.id/apps/other.png'}" alt="App">
+                                        <div class="icon-box"><i class="ph ph-device-mobile"></i></div>
                                         <div>
-                                            <h4 style="margin: 0; font-size: 14px;">${order.service_name || 'Layanan'}</h4>
-                                            <span style="font-size: 12px; opacity: 0.7;">${order.country || 'Negara'}</span>
+                                            <h4 style="margin: 0; font-size: 15px; font-weight: 800;">${serviceName}</h4>
+                                            <span style="font-size: 12px; opacity: 0.7;">${countryName}</span>
                                         </div>
                                     </div>
                                     <span class="status-badge ${statusClass}">${statusText}</span>
                                 </div>
                                 <div class="number-box">
-                                    <div class="number-text" onclick="copyToClipboard('${order.phone_number}')" style="cursor:pointer;">
-                                        ${order.phone_number || '-'} <i class="ph ph-copy" style="font-size: 16px; opacity: 0.6;"></i>
+                                    <div class="number-text" onclick="copyToClipboard('${phoneNumber}')" style="cursor:pointer;">
+                                        ${phoneNumber} <i class="ph ph-copy" style="font-size: 16px; opacity: 0.6;"></i>
                                     </div>
                                     ${otpDisplay}
                                 </div>
                                 <div class="history-footer">
-                                    <span>ID: ${order.order_id || '-'}</span>
-                                    <span>${order.created_at ? formatDate(order.created_at) : '-'}</span>
+                                    <span style="font-family: monospace;">ID: ${orderId}</span>
+                                    <span>${dateData ? formatDate(dateData) : '-'}</span>
+                                </div>
+                                <div style="text-align: right; margin-top: 5px; font-size: 12px; font-weight: 700; color: #34c759;">
+                                    Harga: ${priceFmt}
                                 </div>
                             </div>
                         `;
                     });
                 } else {
-                    container.innerHTML = `<div class="empty-state"><i class="ph ph-ghost" style="font-size: 50px;"></i><p>Belum ada riwayat pesanan.</p></div>`;
+                    container.innerHTML = `<div class="empty-state"><i class="ph-fill ph-ghost" style="font-size: 60px; color: var(--active-color); opacity: 0.5;"></i><p style="margin-top: 15px; font-weight: 600;">Belum ada riwayat pesanan.</p></div>`;
                 }
             } catch (err) {
                 container.innerHTML = `<div class="empty-state"><p>Gagal memuat riwayat pesanan.</p></div>`;
@@ -259,13 +282,13 @@
         async function loadDepositHistory() {
             const container = document.getElementById('depositContainer');
             try {
-                // Pastikan endpoint ini dibuat di backend (depositRoutes.js)
+                // Pastikan rute ini benar-benar ada di depositRoutes.js backend kamu
                 const res = await fetch('/api/deposit/history', { headers });
                 const json = await res.json();
 
                 if (json.success && json.data.length > 0) {
                     container.innerHTML = '';
-                    json.data.reverse().forEach(dep => {
+                    json.data.forEach(dep => {
                         let statusClass = 'status-pending';
                         let statusText = 'Pending';
                         
@@ -275,31 +298,36 @@
                             statusClass = 'status-canceled'; statusText = 'Gagal/Batal';
                         }
 
+                        // Pengecekan key ID (depositId vs deposit_id) dan method
+                        const depId = dep.depositId || dep.deposit_id || dep._id || '-';
+                        const methodName = dep.method ? dep.method.toUpperCase() : 'QRIS / PAYMENT';
+                        const dateData = dep.createdAt;
+
                         container.innerHTML += `
                             <div class="history-card">
                                 <div class="history-header">
                                     <div class="item-info">
-                                        <div class="icon-box"><i class="ph ph-wallet"></i></div>
+                                        <div class="icon-box" style="background: rgba(52, 199, 89, 0.1); color: #34c759;"><i class="ph-fill ph-wallet"></i></div>
                                         <div>
-                                            <h4 style="margin: 0; font-size: 14px;">Top Up Saldo</h4>
-                                            <span style="font-size: 12px; opacity: 0.7;">${dep.method || 'QRIS/Transfer'}</span>
+                                            <h4 style="margin: 0; font-size: 15px; font-weight: 800;">Top Up Saldo</h4>
+                                            <span style="font-size: 12px; opacity: 0.7; font-weight: 700;">${methodName}</span>
                                         </div>
                                     </div>
                                     <span class="status-badge ${statusClass}">${statusText}</span>
                                 </div>
-                                <div style="margin: 15px 0;">
+                                <div style="margin: 15px 0; text-align: center; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 12px; border: 1px dashed var(--glass-border);">
                                     <span style="font-size: 12px; opacity: 0.7;">Nominal:</span>
-                                    <h3 style="color: var(--text-color);">${formatRupiah(dep.amount || 0)}</h3>
+                                    <h3 style="color: var(--text-color); font-size: 22px; margin-top: 5px;">${formatRupiah(dep.amount || 0)}</h3>
                                 </div>
                                 <div class="history-footer">
-                                    <span>ID: ${dep.deposit_id || dep._id || '-'}</span>
-                                    <span>${dep.created_at ? formatDate(dep.created_at) : '-'}</span>
+                                    <span style="font-family: monospace;">ID: ${depId}</span>
+                                    <span>${dateData ? formatDate(dateData) : '-'}</span>
                                 </div>
                             </div>
                         `;
                     });
                 } else {
-                    container.innerHTML = `<div class="empty-state"><i class="ph ph-wallet" style="font-size: 50px;"></i><p>Belum ada riwayat isi saldo.</p></div>`;
+                    container.innerHTML = `<div class="empty-state"><i class="ph-fill ph-wallet" style="font-size: 60px; color: #34c759; opacity: 0.5;"></i><p style="margin-top: 15px; font-weight: 600;">Belum ada riwayat isi saldo.</p></div>`;
                 }
             } catch (err) {
                 container.innerHTML = `<div class="empty-state"><p>Gagal memuat riwayat deposit.</p></div>`;
