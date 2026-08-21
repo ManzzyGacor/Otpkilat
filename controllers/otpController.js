@@ -72,7 +72,8 @@ exports.getOperators = async (req, res) => {
 
 exports.orderNumber = async (req, res) => {
     try {
-        const { number_id, provider_id, operator_id } = req.query;
+        // Berikan default operator_id = 1 ('any') jika tidak dikirim dari frontend
+        const { number_id, provider_id, operator_id = 1 } = req.query;
         const userId = req.user.id;
 
         const user = await User.findById(userId);
@@ -80,7 +81,12 @@ exports.orderNumber = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
         }
 
-        const response = await axios(getAxiosConfig('/v2/orders', { number_id, provider_id, operator_id }));
+        // Kirim parameter lengkap termasuk operator_id ke API V2 RumahOTP
+        const response = await axios(getAxiosConfig('/v2/orders', { 
+            number_id, 
+            provider_id, 
+            operator_id 
+        }));
         
         if (response.data && response.data.success) {
             const data = response.data.data;
