@@ -50,29 +50,50 @@
             display: flex; justify-content: space-between; align-items: center; margin-top: 25px; margin-bottom: 30px;
         }
         
-        /* Box Order Aktif */
-        .number-display-box {
-            background: linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.08) 100%);
-            border: 2px dashed rgba(52, 199, 89, 0.4);
-            border-radius: 16px; padding: 20px; text-align: center; margin: 15px 0;
+        /* Desain Multi Order Scrollable */
+        .active-orders-wrapper {
+            max-height: 380px; /* Batas tinggi sekitar 2-3 order, sisanya scroll */
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-right: 5px;
         }
-        .phone-number {
-            font-size: 26px; font-weight: 800; letter-spacing: 1.5px;
-            margin: 10px 0; cursor: pointer; color: var(--text-color);
+        /* Custom Scrollbar untuk kotak aktif */
+        .active-orders-wrapper::-webkit-scrollbar { width: 6px; }
+        .active-orders-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+        .order-mini-card {
+            background: var(--glass-bg);
+            border: 1px solid rgba(52, 199, 89, 0.4);
+            border-radius: 16px;
+            padding: 16px;
+            position: relative;
         }
-        
-        @keyframes pulse-otp {
-            0% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.4); }
-            70% { box-shadow: 0 0 0 12px rgba(52, 199, 89, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); }
+        .order-mini-card .header-status {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
         }
-        .otp-box {
-            background: var(--glass-bg); border: 1px solid rgba(52, 199, 89, 0.5);
-            border-radius: 16px; padding: 20px; margin-top: 15px; text-align: center;
-            animation: pulse-otp 2s infinite;
+        .order-mini-card .badge-wait {
+            font-size: 11px; font-weight: 800; color: #fff; background: var(--active-color); padding: 4px 8px; border-radius: 8px;
         }
-        .otp-code {
-            font-size: 34px; font-weight: 800; letter-spacing: 5px; color: #34c759; margin: 10px 0;
+        .order-mini-card .order-id-text {
+            font-size: 11px; font-family: monospace; opacity: 0.6;
+        }
+        .order-mini-card .main-content {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .order-mini-card .phone-text {
+            font-size: 20px; font-weight: 800; letter-spacing: 1px; margin-top: 5px; cursor: pointer;
+        }
+        .order-mini-card .otp-display {
+            font-size: 24px; font-weight: 800; color: #34c759; letter-spacing: 2px; text-align: right;
+        }
+        .order-mini-card .action-buttons {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;
+        }
+        .order-mini-card .action-buttons button {
+            padding: 8px; font-size: 13px; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; color: white;
         }
     </style>
 </head>
@@ -80,8 +101,8 @@
 
     <div class="container" style="padding-bottom: 100px;">
         
-        <!-- Header Profil (Avatar, Nama, Saldo) -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: var(--glass-bg); padding: 15px; border-radius: 16px; border: 1px solid var(--glass-border); box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+        <!-- Header Profil -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--glass-bg); padding: 15px; border-radius: 16px; border: 1px solid var(--glass-border); box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="Avatar" style="width: 45px; height: 45px; border-radius: 12px; object-fit: cover;">
                 <div>
@@ -94,8 +115,8 @@
             </button>
         </div>
 
-        <!-- Wadah untuk Menampilkan Order Aktif (TIDAK MENGHILANGKAN FORM LAYANAN) -->
-        <div id="activeOrdersWrapper" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;"></div>
+        <!-- Wadah Multi Order Aktif (Tampil jika ada) -->
+        <div id="activeOrdersWrapper" class="active-orders-wrapper" style="display: none;"></div>
 
         <h2 style="margin-bottom: 15px; font-weight: 800; font-size: 18px;">Pilih Layanan</h2>
 
@@ -172,7 +193,10 @@
 
         let allServices = []; let filteredServices = []; let currentPage = 1; const itemsPerPage = 20;
         let allCountries = []; let filteredCountries = []; let currentCountryPage = 1; const countriesPerPage = 12;
-        let selectedServiceName = ''; let selectedServiceImg = ''; let activeOrderId = null; let otpInterval = null;
+        let selectedServiceName = ''; let selectedServiceImg = ''; 
+        
+        // Simpan interval polling berdasarkan Order ID agar tidak bentrok
+        let otpIntervals = {};
 
         // FETCH DATA PROFIL (Nama & Saldo)
         async function fetchProfile() {
@@ -187,55 +211,63 @@
             } catch(e) { console.error(e); }
         }
 
-        // CEK ORDER AKTIF & RENDER KARTUNYA TANPA MENGHILANGKAN FORM LAYANAN
+        // CEK BANYAK ORDER AKTIF
         async function checkActiveOrder() {
             try {
                 const res = await fetch('/api/otp/active', { headers });
                 const json = await res.json();
                 
-                if (json.success && json.data) {
-                    renderActiveOrderCard(json.data);
+                const wrapper = document.getElementById('activeOrdersWrapper');
+                if (json.success && json.data && json.data.length > 0) {
+                    wrapper.style.display = 'flex';
+                    wrapper.innerHTML = ''; // Bersihkan dulu
+                    
+                    json.data.forEach(order => {
+                        const id = order.orderId || order.order_id;
+                        const phone = order.phoneNumber || order.phone_number;
+                        addActiveOrderCard(id, order.service, order.country, phone);
+                    });
+                } else {
+                    wrapper.style.display = 'none';
                 }
             } catch (err) { console.error("Gagal mengecek order aktif", err); }
         }
 
-        function renderActiveOrderCard(data) {
+        // TAMBAHKAN KARTU ORDER (Mini)
+        function addActiveOrderCard(orderId, service, country, phone) {
             const wrapper = document.getElementById('activeOrdersWrapper');
-            // Inject kartu order aktif ke bagian atas halaman
-            wrapper.innerHTML = `
-                <div class="liquid-glass" style="padding: 20px; border-radius: 20px; border: 2px solid rgba(52, 199, 89, 0.4);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-size: 12px; font-weight: 800; color: #fff; background: var(--active-color); padding: 4px 10px; border-radius: 8px;"><i class="ph-bold ph-spinner-gap ph-spin"></i> ORDER AKTIF</span>
-                        <small style="opacity: 0.6; font-family: monospace;">${data.orderId || data.order_id}</small>
+            wrapper.style.display = 'flex'; // Pastikan terlihat
+
+            // Cek jika kartu sudah ada agar tidak duplikat
+            if(document.getElementById(`card-${orderId}`)) return;
+
+            const cardHtml = `
+                <div class="order-mini-card" id="card-${orderId}">
+                    <div class="header-status">
+                        <span class="badge-wait" id="badge-${orderId}"><i class="ph-bold ph-spinner-gap ph-spin"></i> OTP...</span>
+                        <span class="order-id-text">${orderId}</span>
                     </div>
-                    
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px; background: rgba(0,0,0,0.05); padding: 12px; border-radius: 14px;">
+                    <div class="main-content">
                         <div>
-                            <h4 style="font-size: 16px; margin:0; font-weight: 800;">${data.service}</h4>
-                            <p style="font-size: 13px; opacity: 0.7; margin: 3px 0 0 0;">${data.country}</p>
+                            <div style="font-size: 13px; opacity:0.8;">${service} - ${country}</div>
+                            <div class="phone-text" onclick="copyText('${phone}')">${phone} <i class="ph ph-copy" style="font-size:14px; opacity:0.5;"></i></div>
+                        </div>
+                        <div class="otp-display" id="otpBox-${orderId}">
+                            <i class="ph-spin ph-spinner-gap" style="font-size:20px; color:#ff9500;"></i>
                         </div>
                     </div>
-
-                    <div class="number-display-box">
-                        <span style="font-size: 12px; font-weight: 700; opacity: 0.7; text-transform: uppercase;">Nomor Virtual Anda</span>
-                        <div class="phone-number" onclick="copyText('${data.phoneNumber || data.phone_number}')">${data.phoneNumber || data.phone_number}</div>
-                    </div>
-
-                    <div class="otp-box" id="otpBox-${data.orderId || data.order_id}">
-                        <p style="font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;" id="otpStatusTitle-${data.orderId || data.order_id}">
-                            <i class="ph-fill ph-spinner-gap ph-spin"></i> Menunggu SMS OTP...
-                        </p>
-                        <div class="otp-code" id="displayOtpCode-${data.orderId || data.order_id}">------</div>
-                        <p style="font-size: 13px; opacity: 0.7; margin-top: 5px;" id="displayOtpMsg-${data.orderId || data.order_id}">Sistem sedang mendengarkan pesan masuk.</p>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                        <button class="btn" style="background: linear-gradient(135deg, #34c759 0%, #28a745 100%); font-weight: 700; border-radius: 12px;" onclick="setOrderStatus('${data.orderId || data.order_id}', 'done')">Selesai</button>
-                        <button class="btn" style="background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); font-weight: 700; border-radius: 12px;" onclick="setOrderStatus('${data.orderId || data.order_id}', 'cancel')">Batalkan</button>
+                    <div class="action-buttons">
+                        <button style="background: linear-gradient(135deg, #34c759 0%, #28a745 100%);" onclick="setOrderStatus('${orderId}', 'done')">Selesai</button>
+                        <button style="background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%);" onclick="setOrderStatus('${orderId}', 'cancel')">Batal</button>
                     </div>
                 </div>
             `;
-            startPollingOtp(data.orderId || data.order_id);
+            
+            // Tambahkan di urutan paling atas
+            wrapper.insertAdjacentHTML('afterbegin', cardHtml);
+            
+            // Mulai polling khusus untuk order ini
+            startPollingOtp(orderId);
         }
 
         function copyText(text) {
@@ -243,10 +275,11 @@
             Toastify({ text: "Tersalin ke clipboard!", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
         }
 
-        // LOGIKA POLLING DIPERBAIKI (Sinkronisasi Batal Otomatis & Selesai)
+        // LOGIKA POLLING TERPISAH (TIAP DETIK CEK JIKA OTP KOSONG)
         function startPollingOtp(orderId) {
-            if(otpInterval) clearInterval(otpInterval);
-            otpInterval = setInterval(async () => {
+            if(otpIntervals[orderId]) clearInterval(otpIntervals[orderId]);
+            
+            otpIntervals[orderId] = setInterval(async () => {
                 try {
                     const res = await fetch(`/api/otp/check-order?order_id=${orderId}`, { headers });
                     const json = await res.json();
@@ -254,61 +287,53 @@
                     if(json.success && json.data) {
                         const d = json.data;
                         
-                        // FIX BUG: Jika server pusat membatalkan otomatis karena expired (kadaluarsa)
+                        // FIX: Jika server pusat bilang expired/batal
                         if (d.status === 'canceled' || d.status === 'expiring' || d.status === 'refunded') {
-                            clearInterval(otpInterval);
-                            Toastify({ text: "Waktu habis / Dibatalkan oleh server pusat.", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-                            
-                            // Paksa update status lokal menjadi batal agar saldo kembali
+                            clearInterval(otpIntervals[orderId]);
+                            Toastify({ text: `Order ${orderId} dibatalkan server.`, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
                             await fetch(`/api/otp/set-status?order_id=${orderId}&status=cancel`, { headers });
-                            
-                            // Refresh halaman untuk membersihkan box
-                            setTimeout(() => location.reload(), 2000);
+                            document.getElementById(`card-${orderId}`).remove(); // Hapus kartu
+                            fetchProfile(); // Update saldo balik
                             return;
                         }
 
-                        // JIKA OTP MASUK
-                        if(d.otp_code) {
-                            document.getElementById(`otpStatusTitle-${orderId}`).innerHTML = "<i class='ph-fill ph-check-circle'></i> Kode OTP Diterima!";
-                            document.getElementById(`displayOtpCode-${orderId}`).innerText = d.otp_code;
+                        // FIX: Jika OTP benar-benar ADA isinya (bukan null, bukan kosong)
+                        if(d.otp_code && d.otp_code.trim() !== '') {
+                            document.getElementById(`badge-${orderId}`).innerHTML = "<i class='ph-bold ph-check-circle'></i> SELESAI";
+                            document.getElementById(`badge-${orderId}`).style.background = "#000";
                             
-                            document.getElementById(`displayOtpCode-${orderId}`).style.cursor = "pointer";
-                            document.getElementById(`displayOtpCode-${orderId}`).onclick = function() { copyText(d.otp_code); };
+                            const otpBox = document.getElementById(`otpBox-${orderId}`);
+                            otpBox.innerText = d.otp_code;
+                            otpBox.style.cursor = "pointer";
+                            otpBox.onclick = function() { copyText(d.otp_code); };
                             
-                            document.getElementById(`displayOtpMsg-${orderId}`).innerText = "Klik pada kode untuk menyalin.";
-                            document.getElementById(`otpBox-${orderId}`).style.animation = "none";
-                            document.getElementById(`otpBox-${orderId}`).style.borderColor = "#34c759";
-                            clearInterval(otpInterval);
+                            document.getElementById(`card-${orderId}`).style.borderColor = "#34c759";
+                            clearInterval(otpIntervals[orderId]); // Hentikan cek karena sudah dapat
                         }
+                        // JIKA KOSONG, KITA DIAMKAN SAJA AGAR TERUS LOOPING MENCARI OTP
                     }
-                } catch (err) { console.error("Gagal memeriksa status OTP"); }
-            }, 5000); // Cek setiap 5 detik
+                } catch (err) { console.error(`Error cek order ${orderId}`); }
+            }, 2000); // Cek setiap 2 detik 
         }
 
-        // EKSEKUSI ORDER BARU (TETAP TAMPILKAN LAYANAN)
+        // EKSEKUSI ORDER BARU 
         async function orderNumber(numberId, providerId, operatorId) {
             try {
-                Toastify({ text: "Memproses pesanan...", style: { background: "#007AFF", borderRadius: "14px" } }).showToast();
+                Toastify({ text: "Memproses...", style: { background: "#007AFF", borderRadius: "14px" } }).showToast();
                 const res = await fetch(`/api/otp/order?number_id=${numberId}&provider_id=${providerId}&operator_id=${operatorId || 1}`, { headers });
                 const json = await res.json();
 
                 if(json.success) {
                     const data = json.data;
                     
-                    // Render langsung kartu order aktif di bagian atas
-                    renderActiveOrderCard({
-                        orderId: data.order_id,
-                        service: selectedServiceName,
-                        country: data.country,
-                        phoneNumber: data.phone_number
-                    });
+                    // Tambahkan list ke kotak aktif
+                    addActiveOrderCard(data.order_id, selectedServiceName, data.country, data.phone_number);
 
-                    // Kembalikan view ke daftar aplikasi agar bisa order lagi
+                    // Kembalikan form ke awal agar bisa order yang lain
                     document.getElementById('stepCountryContainer').style.display = 'none';
                     document.getElementById('stepServiceContainer').style.display = 'block';
                     
-                    // Update saldo secara instan
-                    fetchProfile();
+                    fetchProfile(); // Update saldo terpotong
 
                     Toastify({ text: "Nomor didapatkan!", style: { background: "#34c759", borderRadius: "14px" } }).showToast();
                 } else { Toastify({ text: json.message || "Gagal memesan nomor", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
@@ -321,11 +346,17 @@
                 const json = await res.json();
 
                 if(json.success) {
-                    Toastify({ text: `Status pesanan: ${status === 'done' ? 'Selesai' : 'Dibatalkan'}`, style: { background: "#34c759", borderRadius: "14px" } }).showToast();
-                    if(status === 'cancel' || status === 'done') {
-                        if(otpInterval) clearInterval(otpInterval);
-                        setTimeout(() => location.reload(), 1000);
-                    }
+                    Toastify({ text: `Order ${status === 'done' ? 'Selesai' : 'Dibatalkan'}`, style: { background: "#34c759", borderRadius: "14px" } }).showToast();
+                    
+                    if(otpIntervals[orderId]) clearInterval(otpIntervals[orderId]);
+                    
+                    // Hilangkan kartu dari layar secara halus
+                    document.getElementById(`card-${orderId}`).style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById(`card-${orderId}`).remove();
+                        fetchProfile(); // Update saldo barangkali refund
+                    }, 500);
+                    
                 } else { Toastify({ text: json.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
             } catch (err) { Toastify({ text: "Gagal memproses permintaan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
         }
