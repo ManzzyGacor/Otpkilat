@@ -9,99 +9,132 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
         .banner-card {
-            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 50%, #86a8e7 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             border-radius: 24px;
             padding: 24px;
             color: #ffffff;
             margin-top: 20px;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
         }
         .app-icon-row {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             margin: 15px 0;
         }
         .app-mini-icon {
-            width: 36px;
-            height: 36px;
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(8px);
-            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 22px;
+            transition: transform 0.3s ease;
+        }
+        .app-mini-icon:hover {
+            transform: translateY(-3px);
+        }
+        
+        /* Desain Kartu Order Aktif di Beranda */
+        .active-order-banner {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .active-order-banner:active {
+            transform: scale(0.98);
+        }
+        .active-order-banner .pulse-icon {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" style="padding-bottom: 90px;">
         <!-- Header User -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="Avatar" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
+                <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="Avatar" style="width: 48px; height: 48px; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                 <div>
-                    <h3 id="userName" style="font-size: 16px;">Memuat...</h3>
-                    <p style="font-size: 12px; opacity: 0.7;">Selamat siang 🌤️</p>
+                    <h3 id="userName" style="font-size: 17px; font-weight: 700;">Memuat...</h3>
+                    <p id="greetingText" style="font-size: 13px; opacity: 0.7;">Selamat datang</p>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="liquid-glass" style="border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color);" onclick="window.location.href='/profile'">
-                    <i class="ph ph-user" style="font-size: 18px;"></i>
-                </button>
-            </div>
+            <button class="liquid-glass" style="border: none; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); transition: all 0.3s;" onclick="window.location.href='/profile'">
+                <i class="ph ph-user" style="font-size: 20px;"></i>
+            </button>
         </div>
 
         <!-- Kartu Saldo -->
-        <div class="liquid-glass" style="padding: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div class="liquid-glass" style="padding: 22px; margin-top: 25px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1);">
             <div>
-                <p style="font-size: 13px; opacity: 0.7; margin-bottom: 4px;">Saldo Kamu</p>
-                <h2 id="userBalance" style="font-size: 24px; font-weight: 700;">Rp0</h2>
+                <p style="font-size: 13px; opacity: 0.7; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
+                    <i class="ph ph-wallet"></i> Saldo Tersedia
+                </p>
+                <h2 id="userBalance" style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Rp0</h2>
             </div>
-            <button class="btn" style="width: auto; padding: 10px 20px; background: #34c759;" onclick="window.location.href='/deposit'">
+            <button class="btn" style="width: auto; padding: 12px 20px; background: #34c759; border-radius: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);" onclick="window.location.href='/deposit'">
                 + Top Up
             </button>
         </div>
 
         <!-- Banner Beli Nomor Virtual -->
         <div class="banner-card">
-            <h2 style="font-size: 20px; margin-bottom: 5px;">Beli Nomor Virtual</h2>
-            <p style="font-size: 13px; opacity: 0.9; margin-bottom: 15px;">Platform digital lengkap untuk kebutuhan OTP yang cepat dan aman!</p>
+            <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">Pusat Nokos OTP</h2>
+            <p style="font-size: 13px; opacity: 0.95; margin-bottom: 18px; line-height: 1.5;">Dapatkan nomor virtual untuk WhatsApp, Telegram, dan ratusan aplikasi lainnya secara instan.</p>
             
             <div class="app-icon-row">
                 <div class="app-mini-icon"><i class="ph ph-whatsapp-logo"></i></div>
                 <div class="app-mini-icon"><i class="ph ph-telegram-logo"></i></div>
-                <div class="app-mini-icon"><i class="ph ph-facebook-logo"></i></div>
-                <div class="app-mini-icon">?</div>
+                <div class="app-mini-icon"><i class="ph ph-instagram-logo"></i></div>
+                <div class="app-mini-icon"><i class="ph ph-google-logo"></i></div>
             </div>
 
-            <button class="btn" style="background: #ffffff; color: #000000; margin-top: 10px;" onclick="window.location.href='/order'">
-                Beli Nomor Sekarang <i class="ph ph-arrow-right" style="vertical-align: middle;"></i>
+            <button class="btn" style="background: #ffffff; color: #FF6B6B; margin-top: 15px; border-radius: 14px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px;" onclick="window.location.href='/order'">
+                Order Sekarang <i class="ph ph-arrow-right-bold"></i>
             </button>
         </div>
 
-        <!-- Pesanan Pending / Aktif -->
-        <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 16px;">Pesanan Aktif</h3>
-        <div class="liquid-glass" style="padding: 30px; text-align: center;">
-            <p style="opacity: 0.6; font-size: 14px;">Tidak ada pesanan aktif saat ini.</p>
+        <!-- Container Pesanan Aktif -->
+        <h3 style="margin-top: 35px; margin-bottom: 15px; font-size: 16px; font-weight: 700;">Status Pesanan</h3>
+        <div id="activeOrderSection">
+            <div class="liquid-glass" style="padding: 30px; text-align: center; border-radius: 20px;">
+                <i class="ph ph-check-circle" style="font-size: 40px; color: var(--active-color); opacity: 0.5; margin-bottom: 10px;"></i>
+                <p style="opacity: 0.6; font-size: 14px;">Tidak ada pesanan yang sedang berjalan.</p>
+            </div>
         </div>
     </div>
 
-    <!-- Bottom Navbar Melingkar (iOS Style) -->
+    <!-- Bottom Navbar Melingkar -->
     <nav class="floating-nav liquid-glass">
         <a href="/" class="nav-item active">
-            <i class="ph ph-house"></i>
+            <i class="ph-fill ph-house"></i>
             <span>Home</span>
         </a>
         <a href="/deposit" class="nav-item">
             <i class="ph ph-wallet"></i>
             <span>Deposit</span>
         </a>
-        <!-- Tombol Tengah Menonjol -->
-        <a href="/order" class="nav-item" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 12px;">
-            <i class="ph ph-shopping-bag" style="font-size: 22px;"></i>
+        <a href="/order" class="nav-item" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 14px; box-shadow: 0 5px 15px rgba(0, 122, 255, 0.4); transform: translateY(-5px);">
+            <i class="ph ph-shopping-bag" style="font-size: 24px;"></i>
         </a>
         <a href="/riwayat" class="nav-item">
             <i class="ph ph-clock-counter-clockwise"></i>
@@ -117,20 +150,56 @@
     <script>
         const token = localStorage.getItem('token');
         if(!token) window.location.href = '/login';
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Sapaan Dinamis Berdasarkan Waktu
+        const setGreeting = () => {
+            const hour = new Date().getHours();
+            let greeting = 'Selamat malam 🌙';
+            if (hour >= 5 && hour < 11) greeting = 'Selamat pagi 🌅';
+            else if (hour >= 11 && hour < 15) greeting = 'Selamat siang ☀️';
+            else if (hour >= 15 && hour < 18) greeting = 'Selamat sore 🌤️';
+            document.getElementById('greetingText').innerText = greeting;
+        };
 
         async function loadDashboard() {
             try {
-                const res = await fetch('/api/user/me', { headers: { 'Authorization': `Bearer ${token}` } });
-                const json = await res.json();
-                if(json.success) {
-                    document.getElementById('userName').innerText = json.data.fullName;
-                    document.getElementById('userBalance').innerText = `Rp${json.data.balance.toLocaleString('id-ID')}`;
-                    document.getElementById('userAvatar').src = json.data.avatarUrl;
+                // 1. Muat Profil
+                const resProfile = await fetch('/api/user/me', { headers });
+                const jsonProfile = await resProfile.json();
+                if(jsonProfile.success) {
+                    document.getElementById('userName').innerText = jsonProfile.data.fullName;
+                    document.getElementById('userBalance').innerText = `Rp${jsonProfile.data.balance.toLocaleString('id-ID')}`;
+                    document.getElementById('userAvatar').src = jsonProfile.data.avatarUrl;
+                }
+
+                // 2. Muat Order Aktif
+                const resOrder = await fetch('/api/otp/active', { headers });
+                const jsonOrder = await resOrder.json();
+                
+                if (jsonOrder.success && jsonOrder.data) {
+                    const order = jsonOrder.data;
+                    document.getElementById('activeOrderSection').innerHTML = `
+                        <div class="active-order-banner" onclick="window.location.href='/order'">
+                            <div>
+                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
+                                    <i class="ph-fill ph-spinner-gap pulse-icon"></i> Menunggu OTP
+                                </div>
+                                <h3 style="font-size: 18px; font-weight: 800; letter-spacing: 1px;">${order.phoneNumber}</h3>
+                                <div style="font-size: 13px; opacity: 0.9; margin-top: 4px;">${order.service} - ${order.country}</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); padding: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="ph ph-caret-right" style="font-size: 20px;"></i>
+                            </div>
+                        </div>
+                    `;
                 }
             } catch (err) {
                 console.error("Gagal memuat data dashboard");
             }
         }
+
+        setGreeting();
         loadDashboard();
     </script>
 </body>

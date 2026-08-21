@@ -8,204 +8,178 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
-        .search-box {
-            margin-bottom: 15px;
+        .search-box { margin-bottom: 20px; }
+        .search-box input {
+            width: 100%; padding: 14px 18px; border-radius: 16px;
+            border: 1px solid var(--glass-border); background: var(--glass-bg);
+            color: var(--text-color); font-size: 15px; outline: none;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            transition: border-color 0.3s;
         }
+        .search-box input:focus { border-color: var(--active-color); }
+        
         .service-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 20px;
         }
         .service-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 18px; padding: 16px; display: flex; align-items: center; gap: 12px;
+            cursor: pointer; transition: all 0.25s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        .service-card:active {
-            transform: scale(0.97);
-        }
-        .service-card img {
-            width: 36px;
-            height: 36px;
-            object-fit: contain;
-            flex-shrink: 0;
-        }
-        /* Kartu Negara */
+        .service-card:active { transform: scale(0.96); }
+        .service-card:hover { border-color: var(--active-color); transform: translateY(-2px); }
+        .service-card img { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+        
         .country-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(12px);
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 18px; padding: 18px; margin-bottom: 14px;
+            cursor: pointer; transition: all 0.25s ease; backdrop-filter: blur(12px);
         }
-        .country-card:hover {
-            border-color: var(--active-color);
-        }
-        /* Kontainer Pricelist (Hidden default, muncul saat diklik) */
+        .country-card:hover { border-color: var(--active-color); }
+        
         .pricelist-container {
-            display: none;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--glass-border);
+            display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
         }
         .pricelist-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 8px;
-            padding: 10px;
-            background: rgba(0,0,0,0.03);
-            border-radius: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 10px; padding: 12px 14px; background: rgba(0,0,0,0.04);
+            border-radius: 14px; border: 1px solid var(--glass-border);
         }
+        
         .pagination-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center; margin-top: 25px; margin-bottom: 30px;
         }
+        
+        /* Box Order Aktif */
         .number-display-box {
-            background: linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 100%);
-            border: 2px dashed var(--glass-border);
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
-            margin: 20px 0;
+            background: linear-gradient(135deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.08) 100%);
+            border: 2px dashed rgba(52, 199, 89, 0.4);
+            border-radius: 20px; padding: 25px; text-align: center; margin: 20px 0;
+            position: relative; overflow: hidden;
         }
         .phone-number {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            margin: 10px 0;
-            cursor: pointer;
+            font-size: 28px; font-weight: 800; letter-spacing: 1.5px;
+            margin: 12px 0; cursor: pointer; color: var(--text-color);
+        }
+        
+        /* Animasi Pulse untuk Kotak OTP */
+        @keyframes pulse-otp {
+            0% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(52, 199, 89, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0); }
         }
         .otp-box {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 20px;
-            margin-top: 20px;
-            text-align: center;
+            background: var(--glass-bg); border: 1px solid rgba(52, 199, 89, 0.5);
+            border-radius: 20px; padding: 25px; margin-top: 20px; text-align: center;
+            animation: pulse-otp 2s infinite;
         }
         .otp-code {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: 4px;
-            color: #34c759;
-            margin: 10px 0;
+            font-size: 38px; font-weight: 800; letter-spacing: 5px; color: #34c759; margin: 15px 0;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2 style="margin-bottom: 20px;">Pesan Nomor Virtual</h2>
+    <div class="container" style="padding-bottom: 100px;">
+        <h2 style="margin-bottom: 25px; font-weight: 800;">Pesan Nomor Virtual</h2>
 
-        <!-- Step 1: Pilih Layanan dengan Search & Pagination -->
+        <!-- Step 1: Pilih Layanan -->
         <div id="stepServiceContainer">
             <div class="search-box">
-                <input type="text" id="searchApp" placeholder="Cari nama aplikasi..." onkeyup="filterServices()">
+                <input type="text" id="searchApp" placeholder="🔍 Cari nama aplikasi (mis. WhatsApp)..." onkeyup="filterServices()">
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="font-size: 16px; opacity: 0.8;">Pilih Aplikasi</h3>
-                <span id="totalAppCount" style="font-size: 12px; opacity: 0.6;">Memuat...</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="font-size: 16px; font-weight: 700; opacity: 0.8;">Pilih Aplikasi</h3>
+                <span id="totalAppCount" style="font-size: 12px; font-weight: 600; background: var(--glass-bg); padding: 4px 10px; border-radius: 20px;">Memuat...</span>
             </div>
             
             <div class="service-grid" id="serviceGrid">
-                <p style="opacity: 0.6; font-size: 14px;">Memuat daftar layanan...</p>
+                <p style="opacity: 0.6; font-size: 14px; text-align: center; grid-column: span 2;">Mempersiapkan server layanan...</p>
             </div>
 
-            <!-- Tombol Navigasi Pagination Aplikasi -->
             <div class="pagination-container" id="paginationControls" style="display: none;">
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="prevBtn" onclick="changePage(-1)">Sebelumnya</button>
-                <span id="pageInfo" style="font-size: 13px; font-weight: 600;">Hal 1 dari 1</span>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="nextBtn" onclick="changePage(1)">Selanjutnya</button>
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="prevBtn" onclick="changePage(-1)">Sebelumnya</button>
+                <span id="pageInfo" style="font-size: 13px; font-weight: 700;">Hal 1 / 1</span>
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="nextBtn" onclick="changePage(1)">Selanjutnya</button>
             </div>
         </div>
 
-        <!-- Step 2: Pilih Negara & Dropdown Pricelist Harga -->
-        <div id="stepCountryContainer" style="display: none; margin-top: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 id="selectedAppTitle" style="font-size: 16px; opacity: 0.8;">Pilih Negara</h3>
-                <button onclick="backToServices()" style="background: none; border: none; color: var(--active-color); cursor: pointer; font-weight: 600;">Ganti Layanan</button>
+        <!-- Step 2: Pilih Negara -->
+        <div id="stepCountryContainer" style="display: none; margin-top: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="selectedAppTitle" style="font-size: 18px; font-weight: 800;">Pilih Negara</h3>
+                <button onclick="backToServices()" style="background: rgba(0,122,255,0.1); border: none; color: var(--active-color); padding: 8px 14px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 13px;">Ganti Aplikasi</button>
             </div>
             
-            <!-- Kolom Search Negara -->
-            <div class="search-box" style="margin-bottom: 15px;">
-                <input type="text" id="searchCountry" placeholder="Cari nama negara..." onkeyup="filterCountries()">
+            <div class="search-box">
+                <input type="text" id="searchCountry" placeholder="🌍 Cari nama negara..." onkeyup="filterCountries()">
             </div>
 
-            <div id="countryList" style="display: flex; flex-direction: column; gap: 10px;">
-                <!-- Render negara & dropdown harga -->
-            </div>
+            <div id="countryList" style="display: flex; flex-direction: column; gap: 12px;"></div>
 
-            <!-- Tombol Navigasi Pagination Negara -->
             <div class="pagination-container" id="countryPaginationControls" style="display: none;">
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="countryPrevBtn" onclick="changeCountryPage(-1)">Sebelumnya</button>
-                <span id="countryPageInfo" style="font-size: 13px; font-weight: 600;">Hal 1 dari 1</span>
-                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" id="countryNextBtn" onclick="changeCountryPage(1)">Selanjutnya</button>
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="countryPrevBtn" onclick="changeCountryPage(-1)">Sebelumnya</button>
+                <span id="countryPageInfo" style="font-size: 13px; font-weight: 700;">Hal 1 / 1</span>
+                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="countryNextBtn" onclick="changeCountryPage(1)">Selanjutnya</button>
             </div>
         </div>
 
-        <!-- Step 3: Kotak Hasil Order & Menunggu OTP -->
+        <!-- Step 3: Kotak Menunggu OTP Aktif -->
         <div id="activeOrderContainer" style="display: none;">
-            <div class="liquid-glass" style="padding: 20px;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                    <img id="activeServiceImg" src="" alt="App" width="30" height="30">
+            <div class="liquid-glass" style="padding: 20px; border-radius: 24px;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 16px;">
+                    <img id="activeServiceImg" src="" alt="App" width="36" height="36" style="border-radius: 8px;">
                     <div>
-                        <h4 id="activeServiceName">Layanan</h4>
-                        <p style="font-size: 12px; opacity: 0.7;" id="activeCountryName">Negara</p>
+                        <h4 id="activeServiceName" style="font-size: 16px; margin:0;">Layanan</h4>
+                        <p style="font-size: 13px; opacity: 0.7; margin: 3px 0 0 0;" id="activeCountryName">Negara</p>
                     </div>
                 </div>
 
                 <div class="number-display-box">
-                    <span style="font-size: 13px; opacity: 0.7;">Nomor Telepon (Klik untuk salin)</span>
+                    <span style="font-size: 13px; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px;">Nomor Virtual Anda</span>
                     <div class="phone-number" id="displayPhoneNumber" onclick="copyPhoneNumber()">+62 8xx xxxx</div>
-                    <small style="opacity: 0.5;">ID Order: <span id="displayOrderId">-</span></small>
+                    <small style="opacity: 0.5; font-size: 12px; font-family: monospace;">ID: <span id="displayOrderId">-</span></small>
+                    <div style="margin-top: 10px;">
+                        <button onclick="copyPhoneNumber()" style="background: var(--active-color); color: #fff; border: none; padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer;"><i class="ph ph-copy"></i> Salin Nomor</button>
+                    </div>
                 </div>
 
-                <!-- Kolom Menunggu OTP -->
+                <!-- OTP Pulse Box -->
                 <div class="otp-box">
-                    <p style="font-weight: 600; margin-bottom: 5px;" id="otpStatusTitle">⏳ Menunggu Kode OTP...</p>
+                    <p style="font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;" id="otpStatusTitle"><i class="ph-fill ph-spinner-gap ph-spin"></i> Menunggu SMS OTP...</p>
                     <div class="otp-code" id="displayOtpCode">------</div>
-                    <p style="font-size: 13px; opacity: 0.7; margin-top: 10px;" id="displayOtpMsg">Pesan SMS belum diterima.</p>
+                    <p style="font-size: 13px; opacity: 0.7; margin-top: 5px;" id="displayOtpMsg">Sistem sedang mendengarkan pesan masuk.</p>
                 </div>
 
-                <!-- Tombol Aksi (Konfirmasi / Batal) -->
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn" style="background-color: #34c759;" onclick="setOrderStatus('done')">Konfirmasi (Selesai)</button>
-                    <button class="btn" style="background-color: #ff3b30;" id="btnCancelOrder" onclick="setOrderStatus('cancel')">Batalkan / Refund</button>
+                <!-- Tombol Aksi -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px;">
+                    <button class="btn" style="background: linear-gradient(135deg, #34c759 0%, #28a745 100%); font-weight: 700; border-radius: 14px;" onclick="setOrderStatus('done')">Selesai</button>
+                    <button class="btn" style="background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%); font-weight: 700; border-radius: 14px;" id="btnCancelOrder" onclick="setOrderStatus('cancel')">Batalkan</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Floating Bottom Navbar -->
+    <!-- Floating Navbar -->
     <nav class="floating-nav liquid-glass">
         <a href="/" class="nav-item">
-            <i class="ph ph-house"></i><span>Home</span>
+            <i class="ph ph-house"></i>
+            <span>Home</span>
         </a>
         <a href="/deposit" class="nav-item">
-            <i class="ph ph-wallet"></i><span>Deposit</span>
+            <i class="ph ph-wallet"></i>
+            <span>Deposit</span>
         </a>
-        <a href="/order" class="nav-item active" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 12px;">
-            <i class="ph ph-shopping-bag" style="font-size: 22px;"></i>
+        <a href="/order" class="nav-item active" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 14px; box-shadow: 0 5px 15px rgba(0, 122, 255, 0.4); transform: translateY(-5px);">
+            <i class="ph-fill ph-shopping-bag" style="font-size: 24px;"></i>
         </a>
         <a href="/riwayat" class="nav-item">
-            <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
+            <i class="ph ph-clock-counter-clockwise"></i>
+            <span>Riwayat</span>
         </a>
         <a href="/profile" class="nav-item">
-            <i class="ph ph-user"></i><span>Profile</span>
+            <i class="ph ph-user"></i>
+            <span>Profile</span>
         </a>
     </nav>
 
@@ -215,95 +189,91 @@
         if(!token) window.location.href = '/login';
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        let allServices = [];
-        let filteredServices = [];
-        let currentPage = 1;
-        const itemsPerPage = 20;
+        let allServices = []; let filteredServices = []; let currentPage = 1; const itemsPerPage = 20;
+        let allCountries = []; let filteredCountries = []; let currentCountryPage = 1; const countriesPerPage = 12;
+        let selectedServiceName = ''; let selectedServiceImg = ''; let activeOrderId = null; let otpInterval = null;
 
-        let allCountries = [];
-        let filteredCountries = [];
-        let currentCountryPage = 1;
-        const countriesPerPage = 12;
+        // FUNGSI CEK ORDER AKTIF
+        async function checkActiveOrder() {
+            try {
+                const res = await fetch('/api/otp/active', { headers });
+                const json = await res.json();
+                
+                if (json.success && json.data) {
+                    const data = json.data;
+                    activeOrderId = data.orderId;
 
-        let selectedServiceName = '';
-        let selectedServiceImg = '';
-        let activeOrderId = null;
-        let otpInterval = null;
+                    document.getElementById('stepServiceContainer').style.display = 'none';
+                    document.getElementById('stepCountryContainer').style.display = 'none';
+                    document.getElementById('activeOrderContainer').style.display = 'block';
 
+                    document.getElementById('activeServiceName').innerText = data.service;
+                    document.getElementById('activeCountryName').innerText = data.country;
+                    document.getElementById('displayPhoneNumber').innerText = data.phoneNumber;
+                    document.getElementById('displayOrderId').innerText = data.orderId;
+
+                    startPollingOtp(data.orderId);
+                }
+            } catch (err) { console.error("Gagal mengecek order aktif", err); }
+        }
+
+        // LOAD SERVICES
         async function loadServices() {
             try {
                 const res = await fetch('/api/otp/services', { headers });
                 const json = await res.json();
                 if(json.success) {
-                    allServices = json.data;
-                    filteredServices = allServices;
-                    document.getElementById('totalAppCount').innerText = `${allServices.length} Aplikasi`;
+                    allServices = json.data; filteredServices = allServices;
+                    document.getElementById('totalAppCount').innerText = `${allServices.length} App`;
                     renderPage();
                 }
-            } catch (err) {
-                console.error("Gagal memuat layanan");
-            }
+            } catch (err) { console.error("Gagal memuat layanan"); }
         }
 
         function renderPage() {
-            const grid = document.getElementById('serviceGrid');
-            grid.innerHTML = '';
-
+            const grid = document.getElementById('serviceGrid'); grid.innerHTML = '';
             if(filteredServices.length === 0) {
-                grid.innerHTML = `<p style="opacity: 0.6; font-size: 14px; grid-column: span 2; text-align: center;">Aplikasi tidak ditemukan.</p>`;
-                document.getElementById('paginationControls').style.display = 'none';
-                return;
+                grid.innerHTML = `<p style="opacity: 0.6; font-size: 14px; grid-column: span 2; text-align: center;">Tidak ditemukan.</p>`;
+                document.getElementById('paginationControls').style.display = 'none'; return;
             }
-
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
+            const startIndex = (currentPage - 1) * itemsPerPage; const endIndex = startIndex + itemsPerPage;
             const paginatedItems = filteredServices.slice(startIndex, endIndex);
 
             paginatedItems.forEach(s => {
                 grid.innerHTML += `
                     <div class="service-card" onclick="selectService(${s.service_code}, '${s.service_name}', '${s.service_img}')">
                         <img src="${s.service_img}" alt="${s.service_name}">
-                        <div style="font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.service_name}</div>
-                    </div>
-                `;
+                        <div style="font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.service_name}</div>
+                    </div>`;
             });
-
             const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
             if(totalPages > 1) {
                 document.getElementById('paginationControls').style.display = 'flex';
-                document.getElementById('pageInfo').innerText = `Hal ${currentPage} dari ${totalPages}`;
+                document.getElementById('pageInfo').innerText = `Hal ${currentPage} / ${totalPages}`;
                 document.getElementById('prevBtn').disabled = currentPage === 1;
                 document.getElementById('nextBtn').disabled = currentPage === totalPages;
-            } else {
-                document.getElementById('paginationControls').style.display = 'none';
-            }
+            } else { document.getElementById('paginationControls').style.display = 'none'; }
         }
 
         function changePage(direction) {
             const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
             currentPage += direction;
-            if(currentPage < 1) currentPage = 1;
-            if(currentPage > totalPages) currentPage = totalPages;
-            renderPage();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if(currentPage < 1) currentPage = 1; if(currentPage > totalPages) currentPage = totalPages;
+            renderPage(); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function filterServices() {
             const keyword = document.getElementById('searchApp').value.toLowerCase();
             filteredServices = allServices.filter(s => s.service_name.toLowerCase().includes(keyword));
-            currentPage = 1;
-            renderPage();
+            currentPage = 1; renderPage();
         }
 
         async function selectService(code, name, img) {
-            selectedServiceName = name;
-            selectedServiceImg = img;
-
+            selectedServiceName = name; selectedServiceImg = img;
             document.getElementById('stepServiceContainer').style.display = 'none';
             document.getElementById('stepCountryContainer').style.display = 'block';
-            document.getElementById('selectedAppTitle').innerText = `Pilih Negara - ${name}`;
+            document.getElementById('selectedAppTitle').innerText = name;
             document.getElementById('searchCountry').value = '';
-            
             loadCountries(code);
         }
 
@@ -312,153 +282,111 @@
             document.getElementById('stepServiceContainer').style.display = 'block';
         }
 
+        // LOAD COUNTRIES
         async function loadCountries(serviceId) {
             try {
                 const container = document.getElementById('countryList');
-                container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Memuat daftar negara...</p>`;
+                container.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="ph-fill ph-spinner-gap ph-spin" style="font-size:30px; color:var(--active-color);"></i></div>`;
                 document.getElementById('countryPaginationControls').style.display = 'none';
 
                 const res = await fetch(`/api/otp/countries?service_id=${serviceId}`, { headers });
                 const json = await res.json();
-
                 if(json.success) {
-                    allCountries = json.data;
-                    filteredCountries = allCountries;
-                    currentCountryPage = 1;
-                    renderCountryPage();
+                    allCountries = json.data; filteredCountries = allCountries;
+                    currentCountryPage = 1; renderCountryPage();
                 }
-            } catch (err) {
-                Toastify({ text: "Gagal memuat negara", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-            }
+            } catch (err) { Toastify({ text: "Gagal memuat negara", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
         }
 
         function renderCountryPage() {
-            const container = document.getElementById('countryList');
-            container.innerHTML = '';
-
+            const container = document.getElementById('countryList'); container.innerHTML = '';
             if(filteredCountries.length === 0) {
                 container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Negara tidak ditemukan.</p>`;
-                document.getElementById('countryPaginationControls').style.display = 'none';
-                return;
+                document.getElementById('countryPaginationControls').style.display = 'none'; return;
             }
-
-            const startIndex = (currentCountryPage - 1) * countriesPerPage;
-            const endIndex = startIndex + countriesPerPage;
+            const startIndex = (currentCountryPage - 1) * countriesPerPage; const endIndex = startIndex + countriesPerPage;
             const paginatedCountries = filteredCountries.slice(startIndex, endIndex);
 
             paginatedCountries.forEach((c, index) => {
-                let pricelistHtml = '';
-                // Mengambil number_id utama dari objek negara
-                const mainNumberId = c.number_id || 0;
-
+                let pricelistHtml = ''; const mainNumberId = c.number_id || 0;
                 if(c.pricelist && c.pricelist.length > 0) {
                     c.pricelist.forEach(p => {
                         const operatorId = p.operator_id || 1;
                         pricelistHtml += `
                             <div class="pricelist-row">
-                                <div style="font-size: 13px;">
-                                    Stok: <span style="font-weight: 600;">${p.stock}</span> | 
-                                    Harga: <b style="color: #34c759;">${p.price_format}</b>
-                                </div>
-                                <button class="btn" style="width: auto; padding: 6px 14px; font-size: 12px; background: var(--active-color); color: var(--active-text);" onclick="event.stopPropagation(); orderNumber(${mainNumberId}, ${p.provider_id}, ${operatorId})">Pesan</button>
-                            </div>
-                        `;
+                                <div style="font-size: 13px;">Stok: <span style="font-weight: 700;">${p.stock}</span> | Harga: <b style="color: #34c759;">${p.price_format}</b></div>
+                                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 12px; background: var(--active-color); color: var(--active-text);" onclick="event.stopPropagation(); orderNumber(${mainNumberId}, ${p.provider_id}, ${operatorId})">Pilih</button>
+                            </div>`;
                     });
-                } else {
-                    pricelistHtml = `<p style="font-size: 12px; opacity: 0.6; margin-top: 8px;">Stok kosong / Tidak tersedia</p>`;
-                }
+                } else { pricelistHtml = `<p style="font-size: 12px; opacity: 0.6; margin-top: 8px;">Stok kosong</p>`; }
 
                 container.innerHTML += `
                     <div class="country-card" onclick="togglePricelist(${index})">
                         <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <img src="${c.img}" alt="${c.name}" width="28" style="border-radius: 4px; border: 1px solid var(--glass-border);">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <img src="${c.img}" alt="${c.name}" width="32" style="border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                                 <div>
-                                    <div style="font-weight: 700; font-size: 15px;">${c.name}</div>
-                                    <div style="font-size: 12px; opacity: 0.6;">Prefix: ${c.prefix}</div>
+                                    <div style="font-weight: 800; font-size: 16px;">${c.name}</div>
+                                    <div style="font-size: 12px; opacity: 0.6; font-weight: 600;">Prefix: ${c.prefix}</div>
                                 </div>
                             </div>
-                            <i class="ph ph-caret-down" id="icon-${index}" style="font-size: 18px; transition: transform 0.2s;"></i>
+                            <i class="ph ph-caret-down" id="icon-${index}" style="font-size: 20px; transition: transform 0.3s;"></i>
                         </div>
-                        <div class="pricelist-container" id="pricelist-${index}">
-                            ${pricelistHtml}
-                        </div>
-                    </div>
-                `;
+                        <div class="pricelist-container" id="pricelist-${index}">${pricelistHtml}</div>
+                    </div>`;
             });
-
             const totalPages = Math.ceil(filteredCountries.length / countriesPerPage);
             if(totalPages > 1) {
                 document.getElementById('countryPaginationControls').style.display = 'flex';
-                document.getElementById('countryPageInfo').innerText = `Hal ${currentCountryPage} dari ${totalPages}`;
+                document.getElementById('countryPageInfo').innerText = `Hal ${currentCountryPage} / ${totalPages}`;
                 document.getElementById('countryPrevBtn').disabled = currentCountryPage === 1;
                 document.getElementById('countryNextBtn').disabled = currentCountryPage === totalPages;
-            } else {
-                document.getElementById('countryPaginationControls').style.display = 'none';
-            }
+            } else { document.getElementById('countryPaginationControls').style.display = 'none'; }
         }
 
         function togglePricelist(index) {
-            const container = document.getElementById(`pricelist-${index}`);
-            const icon = document.getElementById(`icon-${index}`);
-            
-            if (container.style.display === 'block') {
-                container.style.display = 'none';
-                icon.style.transform = 'rotate(0deg)';
-            } else {
-                container.style.display = 'block';
-                icon.style.transform = 'rotate(180deg)';
-            }
+            const container = document.getElementById(`pricelist-${index}`); const icon = document.getElementById(`icon-${index}`);
+            if (container.style.display === 'block') { container.style.display = 'none'; icon.style.transform = 'rotate(0deg)'; } 
+            else { container.style.display = 'block'; icon.style.transform = 'rotate(180deg)'; }
         }
 
         function changeCountryPage(direction) {
-            const totalPages = Math.ceil(filteredCountries.length / countriesPerPage);
-            currentCountryPage += direction;
-            if(currentCountryPage < 1) currentCountryPage = 1;
-            if(currentCountryPage > totalPages) currentCountryPage = totalPages;
-            renderCountryPage();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const totalPages = Math.ceil(filteredCountries.length / countriesPerPage); currentCountryPage += direction;
+            if(currentCountryPage < 1) currentCountryPage = 1; if(currentCountryPage > totalPages) currentCountryPage = totalPages;
+            renderCountryPage(); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function filterCountries() {
             const keyword = document.getElementById('searchCountry').value.toLowerCase();
             filteredCountries = allCountries.filter(c => c.name.toLowerCase().includes(keyword) || c.prefix.includes(keyword));
-            currentCountryPage = 1;
-            renderCountryPage();
+            currentCountryPage = 1; renderCountryPage();
         }
 
+        // PEMESANAN & OTP
         async function orderNumber(numberId, providerId, operatorId) {
             try {
-                Toastify({ text: "Memesan nomor...", style: { background: "#007AFF", borderRadius: "14px" } }).showToast();
+                Toastify({ text: "Memproses pesanan...", style: { background: "#007AFF", borderRadius: "14px" } }).showToast();
                 const res = await fetch(`/api/otp/order?number_id=${numberId}&provider_id=${providerId}&operator_id=${operatorId || 1}`, { headers });
                 const json = await res.json();
 
                 if(json.success) {
-                    const data = json.data;
-                    activeOrderId = data.order_id;
-
+                    const data = json.data; activeOrderId = data.order_id;
                     document.getElementById('stepCountryContainer').style.display = 'none';
                     document.getElementById('activeOrderContainer').style.display = 'block';
-
                     document.getElementById('activeServiceImg').src = selectedServiceImg;
                     document.getElementById('activeServiceName').innerText = selectedServiceName;
                     document.getElementById('activeCountryName').innerText = data.country;
                     document.getElementById('displayPhoneNumber').innerText = data.phone_number;
                     document.getElementById('displayOrderId').innerText = data.order_id;
-
-                    Toastify({ text: "Nomor berhasil didapatkan!", style: { background: "#34c759", borderRadius: "14px" } }).showToast();
+                    
+                    Toastify({ text: "Nomor didapatkan!", style: { background: "#34c759", borderRadius: "14px" } }).showToast();
                     startPollingOtp(data.order_id);
-                } else {
-                    Toastify({ text: json.message || "Gagal memesan nomor", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-                }
-            } catch (err) {
-                Toastify({ text: "Terjadi kesalahan server", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-            }
+                } else { Toastify({ text: json.message || "Gagal memesan nomor", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
+            } catch (err) { Toastify({ text: "Terjadi kesalahan server", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
         }
 
         function copyPhoneNumber() {
-            const num = document.getElementById('displayPhoneNumber').innerText;
-            navigator.clipboard.writeText(num);
+            const num = document.getElementById('displayPhoneNumber').innerText; navigator.clipboard.writeText(num);
             Toastify({ text: "Nomor disalin ke clipboard!", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
         }
 
@@ -471,15 +399,23 @@
                     if(json.success && json.data) {
                         const d = json.data;
                         if(d.otp_code) {
-                            document.getElementById('otpStatusTitle').innerText = "✅ Kode OTP Diterima!";
+                            document.getElementById('otpStatusTitle').innerHTML = "<i class='ph-fill ph-check-circle'></i> Kode OTP Diterima!";
                             document.getElementById('displayOtpCode').innerText = d.otp_code;
-                            document.getElementById('displayOtpMsg').innerText = d.otp_msg || '';
+                            
+                            // Tambahkan interaksi salin untuk OTP
+                            document.getElementById('displayOtpCode').style.cursor = "pointer";
+                            document.getElementById('displayOtpCode').onclick = function() {
+                                navigator.clipboard.writeText(d.otp_code);
+                                Toastify({ text: "Kode OTP disalin!", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
+                            };
+                            
+                            document.getElementById('displayOtpMsg').innerText = "Klik pada kode untuk menyalin.";
+                            document.querySelector('.otp-box').style.animation = "none";
+                            document.querySelector('.otp-box').style.borderColor = "#34c759";
                             clearInterval(otpInterval);
                         }
                     }
-                } catch (err) {
-                    console.error("Gagal memeriksa status OTP");
-                }
+                } catch (err) { console.error("Gagal memeriksa status OTP"); }
             }, 5000);
         }
 
@@ -490,20 +426,18 @@
                 const json = await res.json();
 
                 if(json.success) {
-                    Toastify({ text: `Status berhasil diubah ke: ${status}`, style: { background: "#34c759", borderRadius: "14px" } }).showToast();
+                    Toastify({ text: `Status pesanan: ${status === 'done' ? 'Selesai' : 'Dibatalkan'}`, style: { background: "#34c759", borderRadius: "14px" } }).showToast();
                     if(status === 'cancel' || status === 'done') {
                         if(otpInterval) clearInterval(otpInterval);
-                        setTimeout(() => window.location.href = '/', 2000);
+                        setTimeout(() => window.location.href = '/', 1500);
                     }
-                } else {
-                    Toastify({ text: json.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-                }
-            } catch (err) {
-                Toastify({ text: "Gagal memproses permintaan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-            }
+                } else { Toastify({ text: json.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
+            } catch (err) { Toastify({ text: "Gagal memproses permintaan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
         }
 
+        // Panggil fungsi inisialisasi awal
         loadServices();
+        checkActiveOrder(); // Mengecek jika ada pesanan menggantung
     </script>
 </body>
 </html>
