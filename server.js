@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const otpRoutes = require('./routes/otpRoutes');
 const depositRoutes = require('./routes/depositRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/otp', otpRoutes);
 app.use('/api/deposit', depositRoutes);
 app.use('/api/user', require('./routes/userRoutes'));
 app.use('/api/admin', adminRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 const PORT = process.env.PORT || 3000;
 
