@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -19,87 +19,127 @@
             box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3);
         }
         .app-icon-row {
-            display: flex;
-            gap: 12px;
-            margin: 15px 0;
+            display: flex; gap: 12px; margin: 15px 0;
         }
         .app-mini-icon {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.25);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            transition: transform 0.3s ease;
+            width: 40px; height: 40px; background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(10px); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; transition: transform 0.3s ease;
         }
-        .app-mini-icon:hover {
-            transform: translateY(-3px);
-        }
+        .app-mini-icon:hover { transform: translateY(-3px); }
         
-        /* Desain Kartu Order Aktif di Beranda */
         .active-order-banner {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-top: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-            cursor: pointer;
-            transition: transform 0.2s ease;
+            color: white; border-radius: 20px; padding: 20px; margin-top: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3); cursor: pointer; transition: transform 0.2s ease;
         }
-        .active-order-banner:active {
-            transform: scale(0.98);
-        }
-        .active-order-banner .pulse-icon {
-            animation: pulse-animation 2s infinite;
-        }
+        .active-order-banner:active { transform: scale(0.98); }
         @keyframes pulse-animation {
             0% { transform: scale(0.95); opacity: 0.8; }
             50% { transform: scale(1.1); opacity: 1; }
             100% { transform: scale(0.95); opacity: 0.8; }
         }
+        .pulse-icon { animation: pulse-animation 2s infinite; }
+
+        /* Desain Kartu Pengumuman (Announcement) */
+        .announcement-box {
+            background: var(--glass-bg);
+            border-left: 5px solid var(--active-color);
+            border-radius: 16px;
+            padding: 18px;
+            margin-top: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        /* Desain Kartu Notifikasi Telegram */
+        .notif-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 22px;
+            margin-top: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        /* Desain Accordion FAQ */
+        .faq-section { margin-top: 30px; }
+        .faq-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .faq-title {
+            padding: 18px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-color);
+        }
+        .faq-title i { transition: transform 0.3s ease; }
+        .faq-content {
+            padding: 0 18px 18px 18px;
+            font-size: 13px;
+            line-height: 1.6;
+            opacity: 0.8;
+            display: none; /* Sembunyikan konten secara default */
+        }
+        .faq-item.active .faq-content { display: block; }
+        .faq-item.active .faq-title i { transform: rotate(180deg); color: var(--active-color); }
     </style>
 </head>
 <body>
 
-    <div class="container" style="padding-bottom: 90px;">
+    <div class="container" style="padding-bottom: 100px;">
         <!-- Header User -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="Avatar" style="width: 48px; height: 48px; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                 <div>
-                    <h3 id="userName" style="font-size: 17px; font-weight: 700;">Memuat...</h3>
-                    <p id="greetingText" style="font-size: 13px; opacity: 0.7;">Selamat datang</p>
+                    <h3 id="userName" style="font-size: 17px; font-weight: 800;">Memuat...</h3>
+                    <p id="greetingText" style="font-size: 13px; opacity: 0.7; font-weight: 600;">Selamat datang</p>
                 </div>
             </div>
             <button class="liquid-glass" style="border: none; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-color); transition: all 0.3s;" onclick="window.location.href='/profile'">
-                <i class="ph ph-user" style="font-size: 20px;"></i>
+                <i class="ph-bold ph-user" style="font-size: 20px;"></i>
             </button>
         </div>
 
         <!-- Kartu Saldo -->
         <div class="liquid-glass" style="padding: 22px; margin-top: 25px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1);">
             <div>
-                <p style="font-size: 13px; opacity: 0.7; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
-                    <i class="ph ph-wallet"></i> Saldo Tersedia
+                <p style="font-size: 13px; opacity: 0.7; font-weight: 700; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
+                    <i class="ph-fill ph-wallet"></i> Saldo Tersedia
                 </p>
                 <h2 id="userBalance" style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Rp0</h2>
             </div>
-            <button class="btn" style="width: auto; padding: 12px 20px; background: #34c759; border-radius: 14px; font-weight: 600; box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);" onclick="window.location.href='/deposit'">
+            <button class="btn" style="width: auto; padding: 12px 20px; background: #34c759; border-radius: 14px; font-weight: 700; box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);" onclick="window.location.href='/deposit'">
                 + Top Up
             </button>
         </div>
 
-        <!-- Banner Beli Nomor Virtual -->
+        <!-- Pengumuman (Announcement) -->
+        <div class="announcement-box" id="announcementBox" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 12px; font-weight: 800; color: var(--active-color); display: flex; align-items: center; gap: 5px;">
+                    <i class="ph-fill ph-megaphone"></i> INFO SISTEM
+                </span>
+                <span id="announcementDate" style="font-size: 11px; opacity: 0.5; font-weight: 700;">-</span>
+            </div>
+            <p id="announcementContent" style="font-size: 13px; line-height: 1.5; font-weight: 600; opacity: 0.9; margin: 0;"></p>
+        </div>
+
+        <!-- Banner Order Utama -->
         <div class="banner-card">
             <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 8px;">Pusat Nokos OTP</h2>
-            <p style="font-size: 13px; opacity: 0.95; margin-bottom: 18px; line-height: 1.5;">Dapatkan nomor virtual untuk WhatsApp, Telegram, dan ratusan aplikasi lainnya secara instan.</p>
+            <p style="font-size: 13px; opacity: 0.95; margin-bottom: 18px; line-height: 1.5; font-weight: 600;">Dapatkan nomor virtual untuk WhatsApp, Telegram, dan aplikasi lainnya secara instan.</p>
             
             <div class="app-icon-row">
                 <div class="app-mini-icon"><i class="ph ph-whatsapp-logo"></i></div>
@@ -108,40 +148,90 @@
                 <div class="app-mini-icon"><i class="ph ph-google-logo"></i></div>
             </div>
 
-            <button class="btn" style="background: #ffffff; color: #FF6B6B; margin-top: 15px; border-radius: 14px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 8px;" onclick="window.location.href='/order'">
-                Order Sekarang <i class="ph ph-arrow-right-bold"></i>
+            <button class="btn" style="background: #ffffff; color: #FF6B6B; margin-top: 15px; border-radius: 14px; font-weight: 800; display: flex; justify-content: center; align-items: center; gap: 8px;" onclick="window.location.href='/order'">
+                Order Sekarang <i class="ph-bold ph-arrow-right"></i>
             </button>
         </div>
 
         <!-- Container Pesanan Aktif -->
-        <h3 style="margin-top: 35px; margin-bottom: 15px; font-size: 16px; font-weight: 700;">Status Pesanan</h3>
+        <h3 style="margin-top: 35px; margin-bottom: 15px; font-size: 16px; font-weight: 800;">Status Pesanan</h3>
         <div id="activeOrderSection">
             <div class="liquid-glass" style="padding: 30px; text-align: center; border-radius: 20px;">
-                <i class="ph ph-check-circle" style="font-size: 40px; color: var(--active-color); opacity: 0.5; margin-bottom: 10px;"></i>
-                <p style="opacity: 0.6; font-size: 14px;">Tidak ada pesanan yang sedang berjalan.</p>
+                <i class="ph-fill ph-check-circle" style="font-size: 44px; color: var(--active-color); opacity: 0.3; margin-bottom: 12px;"></i>
+                <p style="opacity: 0.6; font-size: 14px; font-weight: 600;">Tidak ada pesanan yang sedang berjalan.</p>
             </div>
         </div>
+
+        <!-- Kartu Notifikasi Telegram (Real-time Logs) -->
+        <div class="notif-card">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                <i class="ph-fill ph-bell-ringing" style="color: var(--active-color); font-size: 26px;"></i>
+                <h3 style="font-size: 16px; font-weight: 800; margin: 0;">Notifikasi Real-time</h3>
+            </div>
+            <div style="background: rgba(0,0,0,0.04); border: 1px dashed var(--glass-border); border-radius: 14px; padding: 16px; margin-bottom: 18px;">
+                <p style="font-size: 13px; opacity: 0.8; margin: 0; line-height: 1.6; font-weight: 600;">Disarankan bergabung ke Channel Telegram kami agar Logs Transaksi dan SMS Notifikasi OTP dapat diterima tepat waktu tanpa delay, walaupun situs sedang Anda tutup.</p>
+            </div>
+            <button class="btn" style="background: #2AABEE; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; font-weight: 700;" onclick="window.open('https://t.me/kilatlogs', '_blank')">
+                <i class="ph-fill ph-telegram-logo" style="font-size: 22px;"></i> Join Channel Logs
+            </button>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="faq-section">
+            <h3 style="margin-bottom: 15px; font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                <i class="ph-fill ph-question" style="color: var(--active-color);"></i> Pertanyaan Umum
+            </h3>
+            
+            <!-- Item FAQ 1 -->
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-title">
+                    <span>Tolong dibaca!</span>
+                    <i class="ph-bold ph-caret-down"></i>
+                </div>
+                <div class="faq-content">
+                    Baca dan lihat info sebelum melakukan deposit atau membeli pada website. Harap tidak egois atau bersikap arogan karena segala info telah tertulis <b>LENGKAP</b> dalam FAQ.<br><br>
+                    Jika system maintenance, itu berarti sedang dalam perbaikan. Orderan kosong berarti stock nomor habis dan belum direstock, bukan berarti <b>Tidak Dapat Order!</b><br><br>
+                    Segala info telah ditulis sejelas mungkin. Mohon untuk <b>MEMBACA</b> info atau notifikasi pada website sebelum menyimpulkan tindakan.<br><br>
+                    Jadilah SDM yang berkualitas!
+                </div>
+            </div>
+
+            <!-- Item FAQ 2 -->
+            <div class="faq-item" onclick="toggleFaq(this)">
+                <div class="faq-title">
+                    <span>OTP gak masuk-masuk?</span>
+                    <i class="ph-bold ph-caret-down"></i>
+                </div>
+                <div class="faq-content">
+                    Kendala ini dapat terjadi karena faktor perangkat pengguna atau ketersediaan stok dari penyedia yang sedang kurang stabil.<br><br>
+                    Perlu diingat, nomor yang digunakan adalah nomor kosong, bukan seperti kartu pribadi yang kamu beli langsung dari operator, sehingga wajar jika sesekali mengalami kendala. Check nomor terlebih dahulu sebelum melakukan pendaftaran. Kamu mungkin perlu mencoba beberapa kali hingga berhasil.<br><br>
+                    Jika tetap tidak berfungsi, silakan tunggu beberapa menit atau batalkan transaksi. Saldo kamu akan dikembalikan 100% tanpa potongan biaya.<br><br>
+                    Beberapa aplikasi seperti WhatsApp dan Telegram memiliki sistem keamanan yang ketat. Disarankan menggunakan VPN untuk membantu mengurangi deteksi keamanan. Jika kendala masih berlanjut, kemungkinan perangkat terdeteksi mencurigakan oleh aplikasi atau kualitas nomor sedang kurang baik.
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Bottom Navbar Melingkar -->
+    <!-- Bottom Navbar -->
     <nav class="floating-nav liquid-glass">
-        <a href="/" class="nav-item active">
+        <a href="/" class="nav-item active" style="color: var(--active-color);">
             <i class="ph-fill ph-house"></i>
-            <span>Home</span>
+            <span style="font-weight: 700;">Home</span>
         </a>
         <a href="/deposit" class="nav-item">
-            <i class="ph ph-wallet"></i>
+            <i class="ph-bold ph-wallet"></i>
             <span>Deposit</span>
         </a>
         <a href="/order" class="nav-item" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 14px; box-shadow: 0 5px 15px rgba(0, 122, 255, 0.4); transform: translateY(-5px);">
-            <i class="ph ph-shopping-bag" style="font-size: 24px;"></i>
+            <i class="ph-fill ph-shopping-bag" style="font-size: 24px;"></i>
         </a>
         <a href="/riwayat" class="nav-item">
-            <i class="ph ph-clock-counter-clockwise"></i>
+            <i class="ph-bold ph-clock-counter-clockwise"></i>
             <span>Riwayat</span>
         </a>
         <a href="/profile" class="nav-item">
-            <i class="ph ph-user"></i>
+            <i class="ph-bold ph-user"></i>
             <span>Profile</span>
         </a>
     </nav>
@@ -152,7 +242,7 @@
         if(!token) window.location.href = '/login';
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        // Sapaan Dinamis Berdasarkan Waktu
+        // Sapaan Dinamis
         const setGreeting = () => {
             const hour = new Date().getHours();
             let greeting = 'Selamat malam 🌙';
@@ -162,9 +252,14 @@
             document.getElementById('greetingText').innerText = greeting;
         };
 
+        // Fungsi Buka Tutup FAQ
+        function toggleFaq(element) {
+            element.classList.toggle('active');
+        }
+
         async function loadDashboard() {
             try {
-                // 1. Muat Profil
+                // 1. Fetch Profile User
                 const resProfile = await fetch('/api/user/me', { headers });
                 const jsonProfile = await resProfile.json();
                 if(jsonProfile.success) {
@@ -173,23 +268,45 @@
                     document.getElementById('userAvatar').src = jsonProfile.data.avatarUrl;
                 }
 
-                // 2. Muat Order Aktif
+                // 2. Fetch Setting Global (Untuk Announcement)
+                // Pastikan endpoint ini sesuai dengan yang kamu buat untuk mengambil setting publik
+                try {
+                    const resSetting = await fetch('/api/admin/setting', { headers }); // Atau endpoint setting publik-mu
+                    const jsonSetting = await resSetting.json();
+                    if(jsonSetting.success && jsonSetting.data && jsonSetting.data.announcement) {
+                        document.getElementById('announcementBox').style.display = 'block';
+                        document.getElementById('announcementContent').innerText = jsonSetting.data.announcement;
+                        
+                        // Menampilkan tanggal terakhir diubah jika tersedia
+                        if(jsonSetting.data.updatedAt) {
+                            const date = new Date(jsonSetting.data.updatedAt);
+                            document.getElementById('announcementDate').innerText = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                        }
+                    }
+                } catch(e) { console.warn("Tidak ada pengumuman yang dimuat"); }
+
+                // 3. Fetch Order Aktif
                 const resOrder = await fetch('/api/otp/active', { headers });
                 const jsonOrder = await resOrder.json();
                 
-                if (jsonOrder.success && jsonOrder.data) {
-                    const order = jsonOrder.data;
+                // Mendukung array data multi-order seperti di order.html
+                if (jsonOrder.success && jsonOrder.data && (Array.isArray(jsonOrder.data) ? jsonOrder.data.length > 0 : jsonOrder.data.orderId)) {
+                    // Ambil order pertama (terbaru) untuk ditampilkan di beranda
+                    const order = Array.isArray(jsonOrder.data) ? jsonOrder.data[0] : jsonOrder.data;
+                    const phone = order.phoneNumber || order.phone_number;
+                    const orderId = order.orderId || order.order_id;
+                    
                     document.getElementById('activeOrderSection').innerHTML = `
                         <div class="active-order-banner" onclick="window.location.href='/order'">
                             <div>
-                                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
-                                    <i class="ph-fill ph-spinner-gap pulse-icon"></i> Menunggu OTP
+                                <div style="font-size: 11px; opacity: 0.9; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; font-weight: 800; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 8px; width: max-content;">
+                                    <i class="ph-bold ph-spinner-gap pulse-icon"></i> MENUNGGU OTP
                                 </div>
-                                <h3 style="font-size: 18px; font-weight: 800; letter-spacing: 1px;">${order.phoneNumber}</h3>
-                                <div style="font-size: 13px; opacity: 0.9; margin-top: 4px;">${order.service} - ${order.country}</div>
+                                <h3 style="font-size: 20px; font-weight: 800; letter-spacing: 1px; margin: 0;">${phone}</h3>
+                                <div style="font-size: 12px; opacity: 0.9; margin-top: 5px; font-weight: 600;">${order.service} - ${order.country}</div>
                             </div>
-                            <div style="background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); padding: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <i class="ph ph-caret-right" style="font-size: 20px;"></i>
+                            <div style="background: rgba(255,255,255,0.2); backdrop-filter: blur(5px); padding: 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                <i class="ph-bold ph-caret-right" style="font-size: 20px;"></i>
                             </div>
                         </div>
                     `;
