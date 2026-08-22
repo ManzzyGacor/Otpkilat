@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -43,17 +43,7 @@
         }
         .pulse-icon { animation: pulse-animation 2s infinite; }
 
-        /* Desain Kartu Pengumuman (Announcement) */
-        .announcement-box {
-            background: var(--glass-bg);
-            border-left: 5px solid var(--active-color);
-            border-radius: 16px;
-            padding: 18px;
-            margin-top: 25px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-
-        /* Desain Kartu Notifikasi Telegram */
+        /* Kartu Notifikasi Telegram */
         .notif-card {
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
@@ -89,7 +79,7 @@
             font-size: 13px;
             line-height: 1.6;
             opacity: 0.8;
-            display: none; /* Sembunyikan konten secara default */
+            display: none; 
         }
         .faq-item.active .faq-content { display: block; }
         .faq-item.active .faq-title i { transform: rotate(180deg); color: var(--active-color); }
@@ -125,16 +115,8 @@
             </button>
         </div>
 
-        <!-- Pengumuman (Announcement) -->
-        <div class="announcement-box" id="announcementBox" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 12px; font-weight: 800; color: var(--active-color); display: flex; align-items: center; gap: 5px;">
-                    <i class="ph-fill ph-megaphone"></i> INFO SISTEM
-                </span>
-                <span id="announcementDate" style="font-size: 11px; opacity: 0.5; font-weight: 700;">-</span>
-            </div>
-            <p id="announcementContent" style="font-size: 13px; line-height: 1.5; font-weight: 600; opacity: 0.9; margin: 0;"></p>
-        </div>
+        <!-- Container Multiple Announcements -->
+        <div id="announcementContainer" style="margin-top: 25px;"></div>
 
         <!-- Banner Order Utama -->
         <div class="banner-card">
@@ -242,7 +224,6 @@
         if(!token) window.location.href = '/login';
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        // Sapaan Dinamis
         const setGreeting = () => {
             const hour = new Date().getHours();
             let greeting = 'Selamat malam 🌙';
@@ -252,14 +233,13 @@
             document.getElementById('greetingText').innerText = greeting;
         };
 
-        // Fungsi Buka Tutup FAQ
         function toggleFaq(element) {
             element.classList.toggle('active');
         }
 
         async function loadDashboard() {
             try {
-                // 1. Fetch Profile User
+                // 1. Fetch Profile
                 const resProfile = await fetch('/api/user/me', { headers });
                 const jsonProfile = await resProfile.json();
                 if(jsonProfile.success) {
@@ -268,20 +248,30 @@
                     document.getElementById('userAvatar').src = jsonProfile.data.avatarUrl;
                 }
 
-                // 2. Fetch Setting Global (Untuk Announcement)
-                // Pastikan endpoint ini sesuai dengan yang kamu buat untuk mengambil setting publik
+                // 2. Fetch Multiple Announcements
                 try {
-                    const resSetting = await fetch('/api/admin/setting', { headers }); // Atau endpoint setting publik-mu
-                    const jsonSetting = await resSetting.json();
-                    if(jsonSetting.success && jsonSetting.data && jsonSetting.data.announcement) {
-                        document.getElementById('announcementBox').style.display = 'block';
-                        document.getElementById('announcementContent').innerText = jsonSetting.data.announcement;
+                    const resAnnounce = await fetch('/api/announcements');
+                    const jsonAnnounce = await resAnnounce.json();
+                    
+                    if(jsonAnnounce.success && jsonAnnounce.data && jsonAnnounce.data.length > 0) {
+                        const container = document.getElementById('announcementContainer');
+                        let htmlContent = '';
                         
-                        // Menampilkan tanggal terakhir diubah jika tersedia
-                        if(jsonSetting.data.updatedAt) {
-                            const date = new Date(jsonSetting.data.updatedAt);
-                            document.getElementById('announcementDate').innerText = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-                        }
+                        jsonAnnounce.data.forEach(item => {
+                            const date = new Date(item.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                            htmlContent += `
+                                <div style="background: var(--glass-bg); border-left: 5px solid var(--active-color); border-radius: 16px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 13px; font-weight: 800; color: var(--active-color); display: flex; align-items: center; gap: 5px;">
+                                            <i class="ph-fill ph-megaphone"></i> ${item.title}
+                                        </span>
+                                        <span style="font-size: 11px; opacity: 0.5; font-weight: 700;">${date}</span>
+                                    </div>
+                                    <p style="font-size: 13px; line-height: 1.6; font-weight: 600; opacity: 0.9; margin: 0; white-space: pre-wrap;">${item.content}</p>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = htmlContent;
                     }
                 } catch(e) { console.warn("Tidak ada pengumuman yang dimuat"); }
 
@@ -289,12 +279,9 @@
                 const resOrder = await fetch('/api/otp/active', { headers });
                 const jsonOrder = await resOrder.json();
                 
-                // Mendukung array data multi-order seperti di order.html
                 if (jsonOrder.success && jsonOrder.data && (Array.isArray(jsonOrder.data) ? jsonOrder.data.length > 0 : jsonOrder.data.orderId)) {
-                    // Ambil order pertama (terbaru) untuk ditampilkan di beranda
                     const order = Array.isArray(jsonOrder.data) ? jsonOrder.data[0] : jsonOrder.data;
                     const phone = order.phoneNumber || order.phone_number;
-                    const orderId = order.orderId || order.order_id;
                     
                     document.getElementById('activeOrderSection').innerHTML = `
                         <div class="active-order-banner" onclick="window.location.href='/order'">

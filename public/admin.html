@@ -68,12 +68,28 @@
                     <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Margin Profit Harga (%)</label>
                     <input type="number" id="marginProfit" placeholder="0" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
                 </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Pengumuman Beranda</label>
-                    <input type="text" id="announcementText" placeholder="Pengumuman..." required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
-                </div>
                 <button type="submit" class="btn" style="background: var(--active-color); color: var(--active-text);">Simpan Pengaturan</button>
             </form>
+        </div>
+
+        <h3 style="margin-top: 25px; margin-bottom: 12px; font-size: 16px;">Manajemen Pengumuman</h3>
+        <div class="liquid-glass" style="padding: 20px; margin-bottom: 20px;">
+            <form id="addAnnouncementForm">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Judul</label>
+                    <input type="text" id="announceTitle" placeholder="Misal: Info Maintenance" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Isi Pengumuman</label>
+                    <textarea id="announceContent" rows="4" placeholder="Ketik pesan di sini..." required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color); resize: vertical;"></textarea>
+                </div>
+                <button type="submit" class="btn" style="background: #007AFF;">Tambah Pengumuman</button>
+            </form>
+            
+            <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px; opacity: 0.8;">Pengumuman Aktif</h4>
+            <div id="announcementListAdmin" style="display: flex; flex-direction: column; gap: 10px;">
+                <p style="opacity: 0.6; font-size: 12px;">Memuat pengumuman...</p>
+            </div>
         </div>
 
         <h3 style="margin-top: 25px; margin-bottom: 12px; font-size: 16px;">Manajemen Saldo User</h3>
@@ -153,30 +169,58 @@
                     document.getElementById('statUsers').innerText = jsonStats.data.totalUsers;
                     document.getElementById('statOrders').innerText = jsonStats.data.totalOrders;
                     document.getElementById('marginProfit').value = jsonStats.data.setting.marginProfit;
-                    document.getElementById('announcementText').value = jsonStats.data.setting.announcement;
                 }
                 
+                // 3. Muat Daftar Pengumuman
+                loadAnnouncements();
+
             } catch (err) {
                 console.error(err);
                 Toastify({ text: "Gagal memuat data Admin", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
             }
         }
 
-        // Simpan Setting Margin & Pengumuman
+        async function loadAnnouncements() {
+            try {
+                const res = await fetch('/api/announcements', { headers });
+                const json = await res.json();
+                const container = document.getElementById('announcementListAdmin');
+                container.innerHTML = '';
+                
+                if(json.success && json.data && json.data.length > 0) {
+                    json.data.forEach(item => {
+                        container.innerHTML += `
+                            <div style="background: rgba(0,0,0,0.1); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size:14px; display: block; margin-bottom: 2px;">${item.title}</strong>
+                                    <span style="font-size:11px; opacity:0.6;">${new Date(item.createdAt).toLocaleDateString('id-ID')}</span>
+                                </div>
+                                <button onclick="deleteAnnouncement('${item._id}')" style="background: #ff3b30; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">Hapus</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    container.innerHTML = '<p style="opacity: 0.6; font-size: 12px;">Belum ada pengumuman.</p>';
+                }
+            } catch (err) {
+                console.error("Gagal memuat list pengumuman");
+            }
+        }
+
+        // Simpan Setting Margin 
         document.getElementById('settingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const marginProfit = document.getElementById('marginProfit').value;
-            const announcement = document.getElementById('announcementText').value;
-            
+            // Kita tidak perlu mengirim announcementText lagi karena sudah dipisah
             try {
                 const response = await fetch('/api/admin/settings', {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify({ marginProfit, announcement })
+                    body: JSON.stringify({ marginProfit, announcement: '' }) // announcement dikosongkan agar tidak error di controller lama
                 });
                 const data = await response.json();
                 if (data.success) {
-                    Toastify({ text: "Pengaturan berhasil disimpan!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
+                    Toastify({ text: "Margin berhasil disimpan!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
                 } else {
                     Toastify({ text: data.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
                 }
@@ -184,6 +228,49 @@
                 Toastify({ text: "Terjadi kesalahan jaringan", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
             }
         });
+
+        // Tambah Pengumuman Baru
+        document.getElementById('addAnnouncementForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('announceTitle').value;
+            const content = document.getElementById('announceContent').value;
+            
+            try {
+                const response = await fetch('/api/announcements/add', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ title, content })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    Toastify({ text: "Pengumuman berhasil ditambahkan!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
+                    document.getElementById('addAnnouncementForm').reset();
+                    loadAnnouncements(); // Refresh list
+                } else {
+                    Toastify({ text: data.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
+                }
+            } catch (error) {
+                Toastify({ text: "Gagal menambah pengumuman", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        });
+
+        // Hapus Pengumuman
+        async function deleteAnnouncement(id) {
+            if(!confirm("Yakin ingin menghapus pengumuman ini?")) return;
+            try {
+                const response = await fetch(`/api/announcements/${id}`, {
+                    method: 'DELETE',
+                    headers: headers
+                });
+                const data = await response.json();
+                if(data.success) {
+                    Toastify({ text: "Pengumuman dihapus!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
+                    loadAnnouncements();
+                }
+            } catch (error) {
+                Toastify({ text: "Gagal menghapus", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+            }
+        }
 
         // Eksekusi Saldo User Manual
         document.getElementById('balanceForm').addEventListener('submit', async (e) => {
