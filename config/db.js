@@ -1,12 +1,19 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
 
 const connectDB = async () => {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+        console.error('MONGODB_URI belum diatur. Salin .env.example menjadi .env terlebih dahulu.');
+        process.exit(1);
+    }
+
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI);
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        mongoose.set('strictQuery', true);
+        const conn = await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
+        console.log(`MongoDB terhubung: ${conn.connection.host}`);
+        return conn;
     } catch (error) {
-        console.error(`Error connecting to MongoDB: ${error.message}`);
+        console.error(`Gagal terhubung ke MongoDB: ${error.message}`);
         process.exit(1);
     }
 };

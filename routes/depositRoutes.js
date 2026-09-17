@@ -1,24 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const depositController = require('../controllers/depositController');
-const jwt = require('jsonwebtoken');
+const { verifyToken } = require('../middleware/auth');
 
-// Middleware Verifikasi Token
-const verifyToken = (req, res, next) => {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ success: false, message: 'Akses ditolak.' });
-    try {
-        const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.SESSION_SECRET);
-        req.user = decoded.user;
-        next();
-    } catch (err) {
-        res.status(401).json({ success: false, message: 'Token tidak valid' });
-    }
-};
+router.use(verifyToken);
 
-router.get('/history', verifyToken, depositController.getHistory);
-router.get('/create', verifyToken, depositController.createDeposit);
-router.get('/check', verifyToken, depositController.checkDeposit);
-router.get('/cancel', verifyToken, depositController.cancelDeposit);
+router.get('/methods', depositController.getPaymentMethods);
+router.get('/history', depositController.getHistory);
+router.get('/pending', depositController.getPending);
+router.post('/create', depositController.createDeposit);
+router.get('/create', depositController.createDeposit); // alias lama
+router.get('/check', depositController.checkDeposit);
+router.get('/cancel', depositController.cancelDeposit);
+router.post('/cancel', depositController.cancelDeposit);
 
 module.exports = router;

@@ -1,90 +1,129 @@
-const User = require('../models/User');
 const axios = require('axios');
-require('dotenv').config();
+const User = require('../models/User');
+const Order = require('../models/Order');
+const Deposit = require('../models/Deposit');
+const { getSettings } = require('../utils/settings');
 
-// Mengambil profil user saat ini
 exports.getProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
-        res.status(200).json({ success: true, data: user });
+        if (!user) return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+        return res.status(200).json({ success: true, data: user.toPublic() });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Gagal memuat profil' });
+        console.error('[PROFILE ERROR]', error);
+        return res.status(500).json({ success: false, message: 'Gagal memuat profil.' });
     }
 };
 
-// Update Nama
-exports.updateName = async (req, res) => {
+/** Ringkasan untuk kartu statistik di halaman profil. */
+exports.getSummary = async (req, res) => {
     try {
-        const { fullName } = req.body;
-        const user = await User.findByIdAndUpdate(req.user.id, { fullName }, { new: true }).select('-password');
-        res.status(200).json({ success: true, message: 'Nama berhasil diubah', data: user });
+        const [totalOrders, completedOrders, depositAgg] = await Promise.all([
+            Order.countDocuments({ user: req.user.id }),
+            Order.countDocuments({ user: req.user.id, status: 'completed' }),
+            Deposit.aggregate([
+                { $match: { user: req.userDoc._id, status: 'success' } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ])
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                totalOrders,
+                completedOrders,
+                totalDeposit: depositAgg[0] ? depositAgg[0].total : 0
+            }
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Gagal mengubah nama' });
+        console.error('[SUMMARY ERROR]', error);
+        return res.status(500).json({ success: false, message: 'Gagal memuat ringkasan.' });
     }
 };
 
-// Upload Avatar ke GitHub
+exports.updateProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+
+        if (req.body.fullName !== undefined) {
+            const fullName = String(req.body.fullName).trim();
+            if (fullName.length < 2) {
+                return res.status(400).json({ success: false, message: 'Nama lengkap minimal 2 karakter.' });
+            }
+            user.fullName = fullName;
+        }
+
+        if (req.body.phoneNumber !== undefined) {
+            const phoneNumber = String(req.body.phoneNumber).trim();
+            if (phoneNumber && !/^[0-9+\-\s]{8,20}$/.test(phoneNumber)) {
+                return res.status(400).json({ success: false, message: 'Format nomor HP tidak valid.' });
+            }
+            if (phoneNumber && phoneNumber !== user.phoneNumber
+                && await User.exists({ phoneNumber, _id: { $ne: user._id } })) {
+                return res.status(409).json({ success: false, message: 'Nomor HP sudah dipakai akun lain.' });
+            }
+            user.phoneNumber = phoneNumber || null;
+        }
+
+        await user.save();
+        return res.status(200).json({ success: true, message: 'Profil berhasil diperbarui.', data: user.toPublic() });
+    } catch (error) {
+        if (error && error.code === 11000) {
+            return res.status(409).json({ success: false, message: 'Nomor HP sudah dipakai akun lain.' });
+        }
+        console.error('[UPDATE PROFILE ERROR]', error);
+        return res.status(500).json({ success: false, message: 'Gagal memperbarui profil.' });
+    }
+};
+
+/** Kompatibilitas dengan endpoint lama /update-name. */
+exports.updateName = exports.updateProfile;
+
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+
 exports.uploadAvatar = async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ success: false, message: 'Tidak ada file yang diunggah' });
+            return res.status(400).json({ success: false, message: 'Tidak ada file yang diunggah.' });
+        }
+        if (!ALLOWED_AVATAR_TYPES.includes(req.file.mimetype)) {
+            return res.status(400).json({ success: false, message: 'Format gambar harus PNG, JPG, atau WEBP.' });
+        }
+        if (req.file.size > MAX_AVATAR_BYTES) {
+            return res.status(400).json({ success: false, message: 'Ukuran gambar maksimal 2 MB.' });
         }
 
-        const fileBuffer = req.file.buffer.toString('base64');
-        const filename = `avatar_${req.user.id}_${Date.now()}.png`;
-        const owner = process.env.GITHUB_OWNER;
-        const repo = process.env.GITHUB_REPO;
-        const token = process.env.GITHUB_TOKEN;
-
-        const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/avatars/${filename}`;
-
-        // Push ke GitHub API
-        const githubResponse = await axios.put(
-            githubApiUrl,
-            {
-                message: `Upload avatar for user ${req.user.id}`,
-                content: fileBuffer
-            },
-            {
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        // Ambil URL raw dari GitHub
-        const rawUrl = githubResponse.data.content.download_url;
-
-        // Update database user
-        const user = await User.findByIdAndUpdate(req.user.id, { avatarUrl: rawUrl }, { new: true }).select('-password');
-
-        res.status(200).json({ success: true, message: 'Avatar berhasil diperbarui', data: user });
-    } catch (error) {
-        console.error(error.response ? error.response.data : error.message);
-        res.status(500).json({ success: false, message: 'Gagal mengunggah avatar ke GitHub' });
-    }
-};
-
-// Ambil Saldo Pusat (Hanya Admin)
-exports.getAdminBalance = async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (user.role !== 'admin') {
-            return res.status(403).json({ success: false, message: 'Akses ditolak. Khusus Admin.' });
+        const settings = await getSettings();
+        if (!settings.githubToken || !settings.githubOwner || !settings.githubRepo) {
+            return res.status(503).json({
+                success: false,
+                message: 'Penyimpanan gambar belum dikonfigurasi. Hubungi admin.'
+            });
         }
 
-        const response = await axios({
-            method: 'GET',
-            url: `${process.env.RUMAHOTP_BASE_URL}/v1/user/balance`,
+        const extension = req.file.mimetype === 'image/png' ? 'png' : (req.file.mimetype === 'image/webp' ? 'webp' : 'jpg');
+        const filename = `avatar_${req.user.id}_${Date.now()}.${extension}`;
+        const url = `https://api.github.com/repos/${settings.githubOwner}/${settings.githubRepo}/contents/avatars/${filename}`;
+
+        const githubResponse = await axios.put(url, {
+            message: `Upload avatar for user ${req.user.id}`,
+            content: req.file.buffer.toString('base64')
+        }, {
             headers: {
-                'x-apikey': process.env.RUMAHOTP_API_KEY,
-                'Accept': 'application/json'
-            }
+                Authorization: `token ${settings.githubToken}`,
+                Accept: 'application/vnd.github+json'
+            },
+            timeout: 30000
         });
 
-        res.status(200).json(response.data);
+        const rawUrl = githubResponse.data.content.download_url;
+        const user = await User.findByIdAndUpdate(req.user.id, { avatarUrl: rawUrl }, { new: true }).select('-password');
+
+        return res.status(200).json({ success: true, message: 'Foto profil berhasil diperbarui.', data: user.toPublic() });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Gagal mengambil saldo dari server' });
+        console.error('[UPLOAD AVATAR ERROR]', error.response ? error.response.data : error.message);
+        return res.status(502).json({ success: false, message: 'Gagal mengunggah foto profil.' });
     }
 };
