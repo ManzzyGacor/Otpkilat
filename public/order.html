@@ -273,8 +273,21 @@ App.ready(function () {
     }
 
     function startPolling(orderId) {
+        var attempts = 0;
+        var MAX_ATTEMPTS = 220; // sekitar 11 menit, di bawah batas kedaluwarsa server
+
         pollTimers[orderId] = setInterval(async function () {
             if (document.visibilityState !== 'visible') return;
+
+            // Berhenti sendiri agar tidak memanggil server tanpa henti bila
+            // provider terus mengembalikan galat.
+            attempts++;
+            if (attempts > MAX_ATTEMPTS) {
+                clearInterval(pollTimers[orderId]);
+                delete pollTimers[orderId];
+                return;
+            }
+
             try {
                 var result = await App.api.get('/api/otp/check-order?order_id=' + encodeURIComponent(orderId));
                 var data = result.data;
@@ -543,6 +556,12 @@ App.ready(function () {
     loadBalance();
     loadServices();
     loadActiveOrders();
+
+    // Samakan tampilan dengan keadaan server secara berkala, misalnya saat
+    // pesanan kedaluwarsa dan saldo dikembalikan otomatis.
+    setInterval(function () {
+        if (document.visibilityState === 'visible') loadActiveOrders();
+    }, 30000);
 });
 </script>
 </body>
