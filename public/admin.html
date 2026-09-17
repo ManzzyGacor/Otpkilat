@@ -1,304 +1,453 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KilatOTP - Admin Dashboard</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <style>
-        .admin-card {
-            background: linear-gradient(135deg, #000000 0%, #333333 100%);
-            color: #ffffff;
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .stat-box {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 16px;
-            backdrop-filter: blur(12px);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f8fc">
+<title>Admin Dashboard — KilatOTP</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script>
+(function(){try{var t=localStorage.getItem('kilatotp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+    .admin-hero {
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        border-radius: var(--radius-lg); padding: 24px; color: #fff; margin-bottom: 20px;
+        display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center;
+    }
+    .admin-hero .label { font-size: 13px; font-weight: 700; opacity: 0.9; }
+    .admin-hero .value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin-top: 4px; }
+    .panel-section { display: none; }
+    .panel-section.active { display: block; }
+    .form-2col { display: grid; gap: 0 14px; grid-template-columns: 1fr; }
+    @media (min-width: 560px) { .form-2col { grid-template-columns: 1fr 1fr; } }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+    .toolbar input, .toolbar select { max-width: 220px; }
+    .cell-actions { display: flex; gap: 6px; white-space: nowrap; }
+    .secret-hint { font-size: 12px; color: var(--text-soft); }
+</style>
 </head>
 <body>
 
-    <div class="container" id="adminContent" style="display: none; padding-bottom: 80px;">
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>Admin Control Panel</h2>
-            <button class="btn" style="width: auto; padding: 8px 14px; background: transparent; border: 1px solid var(--glass-border); color: var(--text-color);" onclick="window.location.href='/profile'">
-                Kembali
+<header class="topbar">
+    <div class="container">
+        <a href="/dashboard" class="brand">
+            <span class="brand-mark"><i class="ph-fill ph-shield-check"></i></span>
+            <span>Admin Panel</span>
+        </a>
+        <div class="row" style="gap:8px">
+            <button class="theme-toggle" data-theme-toggle type="button">
+                <i class="ph-bold ph-sun icon-light"></i>
+                <i class="ph-bold ph-moon icon-dark"></i>
             </button>
+            <a href="/dashboard" class="btn btn-secondary btn-sm"><i class="ph-bold ph-arrow-left"></i> Kembali</a>
         </div>
+    </div>
+</header>
 
-        <!-- Saldo Pusat RumahOTP -->
-        <div class="admin-card">
-            <h3 style="font-size: 14px; opacity: 0.8; margin-bottom: 4px;">Saldo Pusat (RumahOTP)</h3>
-            <h1 id="centerBalance" style="font-size: 28px;">Memuat...</h1>
-            <p id="centerUsername" style="font-size: 13px; opacity: 0.7; margin-top: 5px;">@admin</p>
+<!-- Layar penjaga sebelum hak akses dipastikan -->
+<div id="guard" class="container" style="padding:70px 20px;text-align:center">
+    <span class="spinner spinner-lg"></span>
+    <p class="muted small" style="margin-top:14px">Memeriksa hak akses...</p>
+</div>
+
+<main class="container app-shell hidden" id="adminRoot">
+
+    <div class="admin-hero">
+        <div>
+            <div class="label"><i class="ph-fill ph-buildings"></i> Saldo Provider</div>
+            <div class="value" id="providerBalance">-</div>
+            <div class="tiny" style="opacity:.85" id="providerName">Memuat...</div>
         </div>
-
-        <!-- Statistik Platform -->
-        <div class="stats-grid">
-            <div class="stat-box">
-                <span style="font-size: 12px; opacity: 0.7;">Total Pengguna</span>
-                <h3 id="statUsers" style="font-size: 20px; margin-top: 5px;">-</h3>
-            </div>
-            <div class="stat-box">
-                <span style="font-size: 12px; opacity: 0.7;">Total Transaksi</span>
-                <h3 id="statOrders" style="font-size: 20px; margin-top: 5px;">-</h3>
-            </div>
-        </div>
-
-        <h3 style="margin-top: 25px; margin-bottom: 12px; font-size: 16px;">Konfigurasi Sistem</h3>
-        <div class="liquid-glass" style="padding: 20px; margin-bottom: 20px;">
-            <form id="settingsForm">
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Margin Profit Harga (%)</label>
-                    <input type="number" id="marginProfit" placeholder="0" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
-                </div>
-                <button type="submit" class="btn" style="background: var(--active-color); color: var(--active-text);">Simpan Pengaturan</button>
-            </form>
-        </div>
-
-        <h3 style="margin-top: 25px; margin-bottom: 12px; font-size: 16px;">Manajemen Pengumuman</h3>
-        <div class="liquid-glass" style="padding: 20px; margin-bottom: 20px;">
-            <form id="addAnnouncementForm">
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Judul</label>
-                    <input type="text" id="announceTitle" placeholder="Misal: Info Maintenance" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
-                </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Isi Pengumuman</label>
-                    <textarea id="announceContent" rows="4" placeholder="Ketik pesan di sini..." required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color); resize: vertical;"></textarea>
-                </div>
-                <button type="submit" class="btn" style="background: #007AFF;">Tambah Pengumuman</button>
-            </form>
-            
-            <h4 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px; opacity: 0.8;">Pengumuman Aktif</h4>
-            <div id="announcementListAdmin" style="display: flex; flex-direction: column; gap: 10px;">
-                <p style="opacity: 0.6; font-size: 12px;">Memuat pengumuman...</p>
-            </div>
-        </div>
-
-        <h3 style="margin-top: 25px; margin-bottom: 12px; font-size: 16px;">Manajemen Saldo User</h3>
-        <div class="liquid-glass" style="padding: 20px;">
-            <form id="balanceForm">
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Username Target</label>
-                    <input type="text" id="targetUsername" placeholder="username" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
-                </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Nominal (Rp)</label>
-                    <input type="number" id="targetAmount" placeholder="10000" required style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
-                </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-size: 13px; opacity: 0.8; display: block; margin-bottom: 6px;">Aksi Saldo</label>
-                    <select id="targetType" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color);">
-                        <option value="add" style="background: var(--bg-color);">Tambah Saldo</option>
-                        <option value="reduce" style="background: var(--bg-color);">Kurangi Saldo</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn" style="background: #34c759;">Eksekusi Saldo</button>
-            </form>
-        </div>
-
+        <button class="btn btn-secondary btn-sm" id="refreshProvider" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3)">
+            <i class="ph-bold ph-arrows-clockwise"></i> Segarkan
+        </button>
     </div>
 
-    <!-- Floating Bottom Navbar -->
-    <nav class="floating-nav liquid-glass">
-        <a href="/" class="nav-item">
-            <i class="ph ph-house"></i><span>Home</span>
-        </a>
-        <a href="/deposit" class="nav-item">
-            <i class="ph ph-wallet"></i><span>Deposit</span>
-        </a>
-        <a href="/order" class="nav-item">
-            <i class="ph ph-shopping-cart"></i><span>Order</span>
-        </a>
-        <a href="/riwayat" class="nav-item">
-            <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
-        </a>
-        <a href="/profile" class="nav-item">
-            <i class="ph ph-user"></i><span>Profile</span>
-        </a>
-    </nav>
+    <!-- Statistik -->
+    <div class="grid grid-4" style="margin-bottom:22px">
+        <div class="stat-card">
+            <div class="row-between"><span class="stat-label">Pengguna</span><span class="stat-icon"><i class="ph-fill ph-users"></i></span></div>
+            <div class="stat-value" id="statUsers">-</div>
+            <div class="tiny soft" id="statUsersSub">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="row-between"><span class="stat-label">Pesanan</span><span class="stat-icon" style="background:var(--info-soft);color:var(--info)"><i class="ph-fill ph-shopping-bag"></i></span></div>
+            <div class="stat-value" id="statOrders">-</div>
+            <div class="tiny soft" id="statOrdersSub">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="row-between"><span class="stat-label">Saldo Beredar</span><span class="stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="ph-fill ph-wallet"></i></span></div>
+            <div class="stat-value" id="statBalance">-</div>
+            <div class="tiny soft">Total saldo semua user</div>
+        </div>
+        <div class="stat-card">
+            <div class="row-between"><span class="stat-label">Deposit Pending</span><span class="stat-icon" style="background:var(--warning-soft);color:var(--warning)"><i class="ph-fill ph-hourglass"></i></span></div>
+            <div class="stat-value" id="statPending">-</div>
+            <div class="tiny soft">Menunggu konfirmasi</div>
+        </div>
+    </div>
 
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script>
-        const token = localStorage.getItem('token');
-        if(!token) window.location.href = '/login';
+    <!-- Navigasi panel -->
+    <div class="tabs">
+        <button class="tab active" data-panel="users">Pengguna</button>
+        <button class="tab" data-panel="deposits">Deposit</button>
+        <button class="tab" data-panel="orders">Pesanan</button>
+        <button class="tab" data-panel="payments">Pembayaran</button>
+        <button class="tab" data-panel="announcements">Pengumuman</button>
+        <button class="tab" data-panel="settings">Pengaturan</button>
+    </div>
 
-        const headers = { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        };
+    <!-- ============================ PENGGUNA =========================== -->
+    <section class="panel-section active" id="panel-users">
+        <div class="toolbar">
+            <input type="search" id="userSearch" placeholder="Cari username, email, nama">
+            <select id="userRoleFilter">
+                <option value="">Semua role</option>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="userRefresh"><i class="ph-bold ph-arrows-clockwise"></i> Segarkan</button>
+        </div>
 
-        async function loadAdminDashboard() {
-            try {
-                // 1. Cek Saldo Pusat RumahOTP
-                const resBalance = await fetch('/api/user/admin/balance', { headers });
-                const jsonBalance = await resBalance.json();
-                
-                if(resBalance.status === 403 || !jsonBalance.success) {
-                    Toastify({ text: "Akses Ditolak! Anda bukan Admin.", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-                    setTimeout(() => window.location.href = '/profile', 1500);
-                    return;
-                }
+        <div id="userTable"><div class="card center"><span class="spinner spinner-lg"></span></div></div>
 
-                document.getElementById('adminContent').style.display = 'block';
-                document.getElementById('centerBalance').innerText = jsonBalance.data.formated || 'Rp0';
-                document.getElementById('centerUsername').innerText = `Akun Utama: @${jsonBalance.data.username || 'admin'}`;
+        <div class="pagination hidden" id="userPager">
+            <button class="btn btn-secondary btn-sm" id="userPrev">Sebelumnya</button>
+            <span class="small muted" id="userPageInfo"></span>
+            <button class="btn btn-secondary btn-sm" id="userNext">Selanjutnya</button>
+        </div>
 
-                // 2. Ambil Statistik & Pengaturan Sistem
-                const resStats = await fetch('/api/admin/stats', { headers });
-                const jsonStats = await resStats.json();
+        <div class="card" style="margin-top:20px">
+            <div class="card-head"><span class="card-title">Penyesuaian Saldo Cepat</span></div>
+            <form id="balanceForm">
+                <div class="form-2col">
+                    <div class="field">
+                        <label for="adjUsername">Username</label>
+                        <input type="text" id="adjUsername" placeholder="budi" required>
+                    </div>
+                    <div class="field">
+                        <label for="adjAmount">Nominal</label>
+                        <input type="number" id="adjAmount" placeholder="50000" min="1" required>
+                    </div>
+                </div>
+                <div class="form-2col">
+                    <div class="field">
+                        <label for="adjType">Aksi</label>
+                        <select id="adjType">
+                            <option value="add">Tambah Saldo</option>
+                            <option value="reduce">Kurangi Saldo</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="adjNote">Catatan (opsional)</label>
+                        <input type="text" id="adjNote" placeholder="mis. bonus promo">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-block" id="adjustBtn">Eksekusi</button>
+            </form>
+        </div>
+    </section>
 
-                if (jsonStats.success) {
-                    document.getElementById('statUsers').innerText = jsonStats.data.totalUsers;
-                    document.getElementById('statOrders').innerText = jsonStats.data.totalOrders;
-                    document.getElementById('marginProfit').value = jsonStats.data.setting.marginProfit;
-                }
-                
-                // 3. Muat Daftar Pengumuman
-                loadAnnouncements();
+    <!-- ============================ DEPOSIT ============================ -->
+    <section class="panel-section" id="panel-deposits">
+        <div class="toolbar">
+            <select id="depositStatusFilter">
+                <option value="pending">Menunggu konfirmasi</option>
+                <option value="">Semua status</option>
+                <option value="success">Berhasil</option>
+                <option value="rejected">Ditolak</option>
+                <option value="canceled">Dibatalkan</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="depositRefresh"><i class="ph-bold ph-arrows-clockwise"></i> Segarkan</button>
+        </div>
+        <div id="depositTable"><div class="card center"><span class="spinner spinner-lg"></span></div></div>
+    </section>
 
-            } catch (err) {
-                console.error(err);
-                Toastify({ text: "Gagal memuat data Admin", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
-        }
+    <!-- ============================ PESANAN ============================ -->
+    <section class="panel-section" id="panel-orders">
+        <div class="toolbar">
+            <input type="search" id="orderSearch" placeholder="Cari ID, nomor, layanan">
+            <select id="orderStatusFilter">
+                <option value="">Semua status</option>
+                <option value="received">Berjalan</option>
+                <option value="completed">Selesai</option>
+                <option value="canceled">Dibatalkan</option>
+                <option value="expiring">Kedaluwarsa</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="orderRefresh"><i class="ph-bold ph-arrows-clockwise"></i> Segarkan</button>
+        </div>
+        <div id="orderTable"><div class="card center"><span class="spinner spinner-lg"></span></div></div>
+    </section>
 
-        async function loadAnnouncements() {
-            try {
-                const res = await fetch('/api/announcements', { headers });
-                const json = await res.json();
-                const container = document.getElementById('announcementListAdmin');
-                container.innerHTML = '';
-                
-                if(json.success && json.data && json.data.length > 0) {
-                    json.data.forEach(item => {
-                        container.innerHTML += `
-                            <div style="background: rgba(0,0,0,0.1); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong style="font-size:14px; display: block; margin-bottom: 2px;">${item.title}</strong>
-                                    <span style="font-size:11px; opacity:0.6;">${new Date(item.createdAt).toLocaleDateString('id-ID')}</span>
-                                </div>
-                                <button onclick="deleteAnnouncement('${item._id}')" style="background: #ff3b30; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">Hapus</button>
-                            </div>
-                        `;
-                    });
-                } else {
-                    container.innerHTML = '<p style="opacity: 0.6; font-size: 12px;">Belum ada pengumuman.</p>';
-                }
-            } catch (err) {
-                console.error("Gagal memuat list pengumuman");
-            }
-        }
+    <!-- ========================== PEMBAYARAN =========================== -->
+    <section class="panel-section" id="panel-payments">
+        <div class="row-between" style="margin-bottom:15px">
+            <p class="small muted" style="max-width:520px">
+                Metode pembayaran tersimpan di database, bukan di berkas konfigurasi.
+                Perubahan langsung berlaku di halaman top up tanpa perlu deploy ulang.
+            </p>
+            <button class="btn btn-sm" id="addPaymentBtn"><i class="ph-bold ph-plus"></i> Tambah</button>
+        </div>
+        <div id="paymentList"><div class="card center"><span class="spinner spinner-lg"></span></div></div>
+    </section>
 
-        // Simpan Setting Margin 
-        document.getElementById('settingsForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const marginProfit = document.getElementById('marginProfit').value;
-            // Kita tidak perlu mengirim announcementText lagi karena sudah dipisah
-            try {
-                const response = await fetch('/api/admin/settings', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ marginProfit, announcement: '' }) // announcement dikosongkan agar tidak error di controller lama
-                });
-                const data = await response.json();
-                if (data.success) {
-                    Toastify({ text: "Margin berhasil disimpan!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
-                } else {
-                    Toastify({ text: data.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-                }
-            } catch (error) {
-                Toastify({ text: "Terjadi kesalahan jaringan", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
-        });
+    <!-- ========================== PENGUMUMAN =========================== -->
+    <section class="panel-section" id="panel-announcements">
+        <div class="card" style="margin-bottom:18px">
+            <div class="card-head"><span class="card-title">Pengumuman Baru</span></div>
+            <form id="announcementForm">
+                <div class="field">
+                    <label for="announceTitle">Judul</label>
+                    <input type="text" id="announceTitle" placeholder="mis. Info Maintenance" required>
+                </div>
+                <div class="field">
+                    <label for="announceContent">Isi</label>
+                    <textarea id="announceContent" rows="4" placeholder="Tulis pesan untuk pengguna..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-block" id="announceBtn">Terbitkan</button>
+            </form>
+        </div>
+        <div id="announcementList"><div class="card center"><span class="spinner"></span></div></div>
+    </section>
 
-        // Tambah Pengumuman Baru
-        document.getElementById('addAnnouncementForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = document.getElementById('announceTitle').value;
-            const content = document.getElementById('announceContent').value;
-            
-            try {
-                const response = await fetch('/api/announcements/add', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ title, content })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    Toastify({ text: "Pengumuman berhasil ditambahkan!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
-                    document.getElementById('addAnnouncementForm').reset();
-                    loadAnnouncements(); // Refresh list
-                } else {
-                    Toastify({ text: data.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-                }
-            } catch (error) {
-                Toastify({ text: "Gagal menambah pengumuman", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
-        });
+    <!-- =========================== PENGATURAN ========================== -->
+    <section class="panel-section" id="panel-settings">
+        <form id="settingsForm">
 
-        // Hapus Pengumuman
-        async function deleteAnnouncement(id) {
-            if(!confirm("Yakin ingin menghapus pengumuman ini?")) return;
-            try {
-                const response = await fetch(`/api/announcements/${id}`, {
-                    method: 'DELETE',
-                    headers: headers
-                });
-                const data = await response.json();
-                if(data.success) {
-                    Toastify({ text: "Pengumuman dihapus!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
-                    loadAnnouncements();
-                }
-            } catch (error) {
-                Toastify({ text: "Gagal menghapus", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
-        }
+            <div class="card" style="margin-bottom:18px">
+                <div class="card-head"><span class="card-title">Identitas Situs</span></div>
+                <div class="form-2col">
+                    <div class="field"><label for="setSiteName">Nama Situs</label><input type="text" id="setSiteName"></div>
+                    <div class="field"><label for="setSupportUrl">Tautan Dukungan</label><input type="url" id="setSupportUrl" placeholder="https://t.me/..."></div>
+                </div>
+                <div class="field"><label for="setTagline">Tagline</label><input type="text" id="setTagline"></div>
+            </div>
 
-        // Eksekusi Saldo User Manual
-        document.getElementById('balanceForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('targetUsername').value;
-            const amount = document.getElementById('targetAmount').value;
-            const type = document.getElementById('targetType').value;
+            <div class="card" style="margin-bottom:18px">
+                <div class="card-head"><span class="card-title">Harga &amp; Batas Top Up</span></div>
+                <div class="form-2col">
+                    <div class="field">
+                        <label for="setMargin">Margin Profit (%)</label>
+                        <input type="number" id="setMargin" min="0" step="0.1">
+                        <span class="field-hint">Ditambahkan ke harga modal provider.</span>
+                    </div>
+                    <div class="field">
+                        <label for="setDepositMin">Top Up Minimum (Rp)</label>
+                        <input type="number" id="setDepositMin" min="0">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="setDepositMax">Top Up Maksimum (Rp)</label>
+                    <input type="number" id="setDepositMax" min="0">
+                </div>
+            </div>
 
-            try {
-                const response = await fetch('/api/admin/adjust-balance', {
-                    method: 'POST',
-                    headers: headers,
-                    body: JSON.stringify({ username, amount, type })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    Toastify({ text: data.message, style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
-                    document.getElementById('targetUsername').value = '';
-                    document.getElementById('targetAmount').value = '';
-                } else {
-                    Toastify({ text: data.message, style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-                }
-            } catch (error) {
-                Toastify({ text: "Gagal mengubah saldo", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
-        });
+            <div class="card" style="margin-bottom:18px">
+                <div class="card-head"><span class="card-title">Provider Nomor</span></div>
+                <div class="field">
+                    <label for="setProviderUrl">Base URL API</label>
+                    <input type="url" id="setProviderUrl" placeholder="https://www.rumahotp.io/api">
+                </div>
+                <div class="field">
+                    <label for="setProviderKey">API Key</label>
+                    <input type="text" id="setProviderKey" placeholder="Biarkan kosong untuk mempertahankan yang sekarang">
+                    <span class="secret-hint" id="hintProviderKey"></span>
+                </div>
+            </div>
 
-        loadAdminDashboard();
-    </script>
+            <div class="card" style="margin-bottom:18px">
+                <div class="card-head"><span class="card-title">Login Google</span></div>
+                <div class="field">
+                    <label for="setGoogleId">Client ID</label>
+                    <input type="text" id="setGoogleId" placeholder="xxxxx.apps.googleusercontent.com">
+                </div>
+                <div class="field">
+                    <label for="setGoogleSecret">Client Secret</label>
+                    <input type="text" id="setGoogleSecret" placeholder="Biarkan kosong untuk mempertahankan yang sekarang">
+                    <span class="secret-hint" id="hintGoogleSecret"></span>
+                </div>
+                <div class="field">
+                    <label for="setGoogleCallback">Callback URL</label>
+                    <input type="url" id="setGoogleCallback" placeholder="https://domain-anda.com/api/auth/google/callback">
+                    <span class="field-hint">Harus sama persis dengan yang didaftarkan di Google Cloud Console.</span>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:18px">
+                <div class="card-head"><span class="card-title">Notifikasi Telegram</span></div>
+                <div class="form-2col">
+                    <div class="field">
+                        <label for="setTelegramToken">Bot Token</label>
+                        <input type="text" id="setTelegramToken" placeholder="Biarkan kosong untuk mempertahankan">
+                        <span class="secret-hint" id="hintTelegramToken"></span>
+                    </div>
+                    <div class="field"><label for="setTelegramChat">Chat ID</label><input type="text" id="setTelegramChat" placeholder="-100xxxxxxxxx"></div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:18px">
+                <div class="card-head"><span class="card-title">Penyimpanan Foto Profil (GitHub)</span></div>
+                <div class="form-2col">
+                    <div class="field"><label for="setGithubOwner">Owner</label><input type="text" id="setGithubOwner"></div>
+                    <div class="field"><label for="setGithubRepo">Repository</label><input type="text" id="setGithubRepo"></div>
+                </div>
+                <div class="field">
+                    <label for="setGithubToken">Personal Access Token</label>
+                    <input type="text" id="setGithubToken" placeholder="Biarkan kosong untuk mempertahankan">
+                    <span class="secret-hint" id="hintGithubToken"></span>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom:18px">
+                <div class="card-head"><span class="card-title">Mode Perbaikan</span></div>
+                <label class="switch" style="margin-bottom:14px">
+                    <input type="checkbox" id="setMaintenance">
+                    <span class="track"></span>
+                    <span class="small">Aktifkan mode perbaikan</span>
+                </label>
+                <div class="field">
+                    <label for="setMaintenanceMessage">Pesan yang ditampilkan</label>
+                    <textarea id="setMaintenanceMessage" rows="2"></textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-block btn-lg" id="saveSettingsBtn">Simpan Semua Pengaturan</button>
+        </form>
+    </section>
+
+</main>
+
+<!-- Modal edit user -->
+<div class="modal-backdrop" id="userModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 style="font-size:17px">Edit Pengguna</h3>
+            <button class="btn btn-ghost btn-icon" data-modal-close="userModal" type="button"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <form id="userForm">
+            <div class="modal-body">
+                <input type="hidden" id="editUserId">
+                <div class="field"><label for="editFullName">Nama Lengkap</label><input type="text" id="editFullName" required></div>
+                <div class="form-2col">
+                    <div class="field"><label for="editUsername">Username</label><input type="text" id="editUsername" required></div>
+                    <div class="field"><label for="editPhone">Nomor HP</label><input type="tel" id="editPhone"></div>
+                </div>
+                <div class="field"><label for="editEmail">Email</label><input type="email" id="editEmail" required></div>
+                <div class="form-2col">
+                    <div class="field">
+                        <label for="editRole">Role</label>
+                        <select id="editRole"><option value="user">User</option><option value="admin">Admin</option></select>
+                    </div>
+                    <div class="field"><label for="editBalance">Saldo (Rp)</label><input type="number" id="editBalance" min="0"></div>
+                </div>
+                <div class="field">
+                    <label for="editPassword">Reset Password (opsional)</label>
+                    <input type="text" id="editPassword" placeholder="Kosongkan bila tidak diubah">
+                </div>
+                <div class="field">
+                    <label for="editNotes">Catatan Internal</label>
+                    <textarea id="editNotes" rows="2" placeholder="Hanya terlihat oleh admin"></textarea>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="editActive">
+                    <span class="track"></span>
+                    <span class="small">Akun aktif</span>
+                </label>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-secondary" data-modal-close="userModal">Batal</button>
+                <button type="submit" class="btn" id="saveUserBtn">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal metode pembayaran -->
+<div class="modal-backdrop" id="paymentModal">
+    <div class="modal">
+        <div class="modal-head">
+            <h3 style="font-size:17px" id="paymentModalTitle">Metode Pembayaran</h3>
+            <button class="btn btn-ghost btn-icon" data-modal-close="paymentModal" type="button"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <form id="paymentForm">
+            <div class="modal-body">
+                <input type="hidden" id="paymentId">
+                <div class="form-2col">
+                    <div class="field">
+                        <label for="payCode">Kode Unik</label>
+                        <input type="text" id="payCode" placeholder="qris" required>
+                        <span class="field-hint">Tidak bisa diubah setelah dibuat.</span>
+                    </div>
+                    <div class="field"><label for="payName">Nama Tampilan</label><input type="text" id="payName" placeholder="QRIS" required></div>
+                </div>
+
+                <div class="field">
+                    <label for="payMode">Mode</label>
+                    <select id="payMode">
+                        <option value="manual">Manual (dikonfirmasi admin)</option>
+                        <option value="gateway">Gateway (otomatis lewat provider)</option>
+                    </select>
+                </div>
+
+                <div id="gatewayFields" class="hidden">
+                    <div class="form-2col">
+                        <div class="field"><label for="payProviderId">Payment ID Provider</label><input type="text" id="payProviderId" placeholder="qris"></div>
+                        <div class="field">
+                            <label for="payVersion">Versi API</label>
+                            <select id="payVersion"><option value="v1">v1</option><option value="v2">v2</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="manualFields">
+                    <div class="form-2col">
+                        <div class="field"><label for="payAccountName">Nama Pemilik Rekening</label><input type="text" id="payAccountName"></div>
+                        <div class="field"><label for="payAccountNumber">Nomor Rekening / HP</label><input type="text" id="payAccountNumber"></div>
+                    </div>
+                    <div class="field"><label for="payQr">URL Gambar QR</label><input type="url" id="payQr" placeholder="https://..."></div>
+                    <label class="switch" style="margin-bottom:16px">
+                        <input type="checkbox" id="payUnique" checked>
+                        <span class="track"></span>
+                        <span class="small">Tambahkan kode unik pada nominal</span>
+                    </label>
+                </div>
+
+                <div class="field"><label for="payLogo">URL Logo</label><input type="url" id="payLogo" placeholder="https://..."></div>
+
+                <div class="form-2col">
+                    <div class="field"><label for="payFeePercent">Biaya (%)</label><input type="number" id="payFeePercent" min="0" step="0.1" value="0"></div>
+                    <div class="field"><label for="payFeeFlat">Biaya Tetap (Rp)</label><input type="number" id="payFeeFlat" min="0" value="0"></div>
+                </div>
+
+                <div class="form-2col">
+                    <div class="field"><label for="payMin">Minimum (Rp)</label><input type="number" id="payMin" min="0" value="5000"></div>
+                    <div class="field"><label for="payMax">Maksimum (Rp)</label><input type="number" id="payMax" min="0" value="1000000"></div>
+                </div>
+
+                <div class="field"><label for="payInstructions">Instruksi Pembayaran</label><textarea id="payInstructions" rows="3"></textarea></div>
+
+                <div class="form-2col">
+                    <div class="field"><label for="paySort">Urutan Tampil</label><input type="number" id="paySort" value="0"></div>
+                    <div class="field" style="justify-content:flex-end">
+                        <label class="switch">
+                            <input type="checkbox" id="payActive" checked>
+                            <span class="track"></span>
+                            <span class="small">Aktif</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn btn-secondary" data-modal-close="paymentModal">Batal</button>
+                <button type="submit" class="btn" id="savePaymentBtn">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/admin.js"></script>
 </body>
 </html>

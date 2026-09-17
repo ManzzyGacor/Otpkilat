@@ -1,514 +1,549 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KilatOTP - Order Nokos</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <style>
-        .search-box { margin-bottom: 20px; }
-        .search-box input {
-            width: 100%; padding: 14px 18px; border-radius: 16px;
-            border: 1px solid var(--glass-border); background: var(--glass-bg);
-            color: var(--text-color); font-size: 15px; outline: none;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
-            transition: border-color 0.3s;
-        }
-        .search-box input:focus { border-color: var(--active-color); }
-        
-        .service-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 20px;
-        }
-        .service-card {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: 18px; padding: 16px; display: flex; align-items: center; gap: 12px;
-            cursor: pointer; transition: all 0.25s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .service-card:active { transform: scale(0.96); }
-        .service-card:hover { border-color: var(--active-color); transform: translateY(-2px); }
-        .service-card img { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
-        
-        .country-card {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: 18px; padding: 18px; margin-bottom: 14px;
-            cursor: pointer; transition: all 0.25s ease; backdrop-filter: blur(12px);
-        }
-        .country-card:hover { border-color: var(--active-color); }
-        
-        .pricelist-container {
-            display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .pricelist-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-top: 10px; padding: 12px 14px; background: rgba(0,0,0,0.04);
-            border-radius: 14px; border: 1px solid var(--glass-border);
-        }
-        
-        .pagination-container {
-            display: flex; justify-content: space-between; align-items: center; margin-top: 25px; margin-bottom: 30px;
-        }
-        
-        /* Desain Multi Order Scrollable */
-        .active-orders-wrapper {
-            max-height: 380px; /* Batas tinggi sekitar 2-3 order, sisanya scroll */
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 25px;
-            padding-right: 5px;
-        }
-        /* Custom Scrollbar untuk kotak aktif */
-        .active-orders-wrapper::-webkit-scrollbar { width: 6px; }
-        .active-orders-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f8fc">
+<title>Pesan Nomor — KilatOTP</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script>
+(function(){try{var t=localStorage.getItem('kilatotp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+    .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 11px; }
+    .service {
+        display: flex; align-items: center; gap: 11px; padding: 13px;
+        border-radius: var(--radius-sm); border: 1px solid var(--border);
+        background: var(--surface); cursor: pointer; text-align: left; width: 100%;
+        font-family: inherit; color: var(--text); font-size: 13px; font-weight: 700;
+        transition: border-color var(--transition), transform var(--transition);
+    }
+    .service:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .service img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; border-radius: 8px; }
+    .service span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        .order-mini-card {
-            background: var(--glass-bg);
-            border: 1px solid rgba(52, 199, 89, 0.4);
-            border-radius: 16px;
-            padding: 16px;
-            position: relative;
-        }
-        .order-mini-card .header-status {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-        }
-        .order-mini-card .badge-wait {
-            font-size: 11px; font-weight: 800; color: #fff; background: var(--active-color); padding: 4px 8px; border-radius: 8px;
-        }
-        .order-mini-card .order-id-text {
-            font-size: 11px; font-family: monospace; opacity: 0.6;
-        }
-        .order-mini-card .main-content {
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .order-mini-card .phone-text {
-            font-size: 20px; font-weight: 800; letter-spacing: 1px; margin-top: 5px; cursor: pointer;
-        }
-        .order-mini-card .otp-display {
-            font-size: 24px; font-weight: 800; color: #34c759; letter-spacing: 2px; text-align: right;
-        }
-        .order-mini-card .action-buttons {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;
-        }
-        .order-mini-card .action-buttons button {
-            padding: 8px; font-size: 13px; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; color: white;
-        }
-    </style>
+    .country { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
+    .country-head {
+        display: flex; align-items: center; gap: 12px; padding: 14px;
+        cursor: pointer; width: 100%; border: none; background: none;
+        font-family: inherit; color: var(--text); text-align: left;
+    }
+    .country-head:hover { background: var(--surface-2); }
+    .country-head img { width: 28px; border-radius: 5px; flex-shrink: 0; }
+    .country-head .caret { margin-left: auto; transition: transform var(--transition); color: var(--text-soft); }
+    .country.open .caret { transform: rotate(180deg); color: var(--primary); }
+    .country-body { display: none; padding: 0 14px 14px; }
+    .country.open .country-body { display: block; }
+
+    .price-row {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 11px 13px; border-radius: 10px; background: var(--surface-2);
+        border: 1px solid var(--border); margin-top: 9px;
+    }
+
+    .order-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 17px; }
+    .order-card.has-otp { border-color: var(--success); background: var(--success-soft); }
+    .otp-code {
+        font-family: ui-monospace, monospace; font-size: 27px; font-weight: 800;
+        letter-spacing: 3px; color: var(--success); cursor: pointer;
+    }
+    .phone { font-family: ui-monospace, monospace; font-size: 19px; font-weight: 800; cursor: pointer; }
+    .timer { font-variant-numeric: tabular-nums; }
+</style>
 </head>
 <body>
 
-    <div class="container" style="padding-bottom: 100px;">
-        
-        <!-- Header Profil -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--glass-bg); padding: 15px; border-radius: 16px; border: 1px solid var(--glass-border); box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <img id="userAvatar" src="https://ui-avatars.com/api/?name=User" alt="Avatar" style="width: 45px; height: 45px; border-radius: 12px; object-fit: cover;">
-                <div>
-                    <h3 id="userName" style="font-size: 15px; font-weight: 800; margin:0;">Memuat...</h3>
-                    <p style="font-size: 13px; font-weight: 700; color: #34c759; margin: 3px 0 0 0; display:flex; align-items:center; gap:4px;"><i class="ph-fill ph-wallet"></i> <span id="userBalance">Rp0</span></p>
-                </div>
-            </div>
-            <button class="liquid-glass" style="border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;" onclick="window.location.href='/deposit'">
-                <i class="ph-bold ph-plus" style="font-size: 18px; color: #34c759;"></i>
+<header class="topbar">
+    <div class="container">
+        <a href="/dashboard" class="brand">
+            <span class="brand-mark"><i class="ph-fill ph-lightning"></i></span>
+            <span data-site-name>KilatOTP</span>
+        </a>
+        <div class="row" style="gap:8px">
+            <a href="/deposit" class="badge badge-success" style="text-decoration:none">
+                <i class="ph-fill ph-wallet"></i> <span id="headerBalance">Rp0</span>
+            </a>
+            <button class="theme-toggle" data-theme-toggle type="button">
+                <i class="ph-bold ph-sun icon-light"></i>
+                <i class="ph-bold ph-moon icon-dark"></i>
             </button>
         </div>
-
-        <!-- Wadah Multi Order Aktif (Tampil jika ada) -->
-        <div id="activeOrdersWrapper" class="active-orders-wrapper" style="display: none;"></div>
-
-        <h2 style="margin-bottom: 15px; font-weight: 800; font-size: 18px;">Pilih Layanan</h2>
-
-        <!-- Step 1: Pilih Layanan -->
-        <div id="stepServiceContainer">
-            <div class="search-box">
-                <input type="text" id="searchApp" placeholder="🔍 Cari nama aplikasi (mis. WhatsApp)..." onkeyup="filterServices()">
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="font-size: 14px; font-weight: 700; opacity: 0.8;">Daftar Aplikasi</h3>
-                <span id="totalAppCount" style="font-size: 12px; font-weight: 600; background: var(--glass-bg); padding: 4px 10px; border-radius: 20px;">Memuat...</span>
-            </div>
-            
-            <div class="service-grid" id="serviceGrid">
-                <p style="opacity: 0.6; font-size: 14px; text-align: center; grid-column: span 2;">Mempersiapkan server layanan...</p>
-            </div>
-
-            <div class="pagination-container" id="paginationControls" style="display: none;">
-                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="prevBtn" onclick="changePage(-1)">Sebelumnya</button>
-                <span id="pageInfo" style="font-size: 13px; font-weight: 700;">Hal 1 / 1</span>
-                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="nextBtn" onclick="changePage(1)">Selanjutnya</button>
-            </div>
-        </div>
-
-        <!-- Step 2: Pilih Negara -->
-        <div id="stepCountryContainer" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 id="selectedAppTitle" style="font-size: 18px; font-weight: 800;">Pilih Negara</h3>
-                <button onclick="backToServices()" style="background: rgba(0,122,255,0.1); border: none; color: var(--active-color); padding: 8px 14px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 13px;">Ganti Aplikasi</button>
-            </div>
-            
-            <div class="search-box">
-                <input type="text" id="searchCountry" placeholder="🌍 Cari nama negara..." onkeyup="filterCountries()">
-            </div>
-
-            <div id="countryList" style="display: flex; flex-direction: column; gap: 12px;"></div>
-
-            <div class="pagination-container" id="countryPaginationControls" style="display: none;">
-                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="countryPrevBtn" onclick="changeCountryPage(-1)">Sebelumnya</button>
-                <span id="countryPageInfo" style="font-size: 13px; font-weight: 700;">Hal 1 / 1</span>
-                <button class="btn" style="width: auto; padding: 10px 18px; font-size: 13px; border-radius: 12px;" id="countryNextBtn" onclick="changeCountryPage(1)">Selanjutnya</button>
-            </div>
-        </div>
     </div>
+</header>
 
-    <!-- Floating Navbar -->
-    <nav class="floating-nav liquid-glass">
-        <a href="/" class="nav-item">
-            <i class="ph ph-house"></i>
-            <span>Home</span>
-        </a>
-        <a href="/deposit" class="nav-item">
-            <i class="ph ph-wallet"></i>
-            <span>Deposit</span>
-        </a>
-        <a href="/order" class="nav-item active" style="background: var(--active-color); color: var(--active-text); border-radius: 50%; padding: 14px; box-shadow: 0 5px 15px rgba(0, 122, 255, 0.4); transform: translateY(-5px);">
-            <i class="ph-fill ph-shopping-bag" style="font-size: 24px;"></i>
-        </a>
-        <a href="/riwayat" class="nav-item">
-            <i class="ph ph-clock-counter-clockwise"></i>
-            <span>Riwayat</span>
-        </a>
-        <a href="/profile" class="nav-item">
-            <i class="ph ph-user"></i>
-            <span>Profile</span>
-        </a>
-    </nav>
+<main class="container app-shell">
 
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script>
-        const token = localStorage.getItem('token');
-        if(!token) window.location.href = '/login';
-        const headers = { 'Authorization': `Bearer ${token}` };
+    <!-- Pesanan aktif -->
+    <section id="activeSection" class="hidden" style="margin-bottom:26px">
+        <div class="row-between" style="margin-bottom:13px">
+            <h3 style="font-size:16px">Pesanan Berjalan</h3>
+            <span class="badge badge-warning" id="activeCount">0 aktif</span>
+        </div>
+        <div id="activeOrders" class="stack"></div>
+    </section>
 
-        let allServices = []; let filteredServices = []; let currentPage = 1; const itemsPerPage = 20;
-        let allCountries = []; let filteredCountries = []; let currentCountryPage = 1; const countriesPerPage = 12;
-        let selectedServiceName = ''; let selectedServiceImg = ''; 
-        
-        // Simpan interval polling berdasarkan Order ID agar tidak bentrok
-        let otpIntervals = {};
+    <!-- Langkah 1: layanan -->
+    <section id="stepService">
+        <h2 style="margin-bottom:6px">Pesan Nomor</h2>
+        <p class="muted small" style="margin-bottom:18px">Pilih aplikasi yang membutuhkan verifikasi, lalu pilih negara.</p>
 
-        // FETCH DATA PROFIL (Nama & Saldo)
-        async function fetchProfile() {
-            try {
-                const res = await fetch('/api/user/me', { headers });
-                const json = await res.json();
-                if(json.success) {
-                    document.getElementById('userName').innerText = json.data.fullName;
-                    document.getElementById('userBalance').innerText = `Rp${json.data.balance.toLocaleString('id-ID')}`;
-                    document.getElementById('userAvatar').src = json.data.avatarUrl;
-                }
-            } catch(e) { console.error(e); }
-        }
+        <div class="field">
+            <input type="search" id="searchService" placeholder="Cari aplikasi, mis. WhatsApp" autocomplete="off">
+        </div>
 
-        // CEK BANYAK ORDER AKTIF
-        async function checkActiveOrder() {
-            try {
-                const res = await fetch('/api/otp/active', { headers });
-                const json = await res.json();
-                
-                const wrapper = document.getElementById('activeOrdersWrapper');
-                if (json.success && json.data && json.data.length > 0) {
-                    wrapper.style.display = 'flex';
-                    wrapper.innerHTML = ''; // Bersihkan dulu
-                    
-                    json.data.forEach(order => {
-                        const id = order.orderId || order.order_id;
-                        const phone = order.phoneNumber || order.phone_number;
-                        addActiveOrderCard(id, order.service, order.country, phone);
-                    });
-                } else {
-                    wrapper.style.display = 'none';
-                }
-            } catch (err) { console.error("Gagal mengecek order aktif", err); }
-        }
+        <div class="row-between" style="margin-bottom:13px">
+            <h3 style="font-size:15px">Daftar Aplikasi</h3>
+            <span class="badge" id="serviceCount">Memuat...</span>
+        </div>
 
-        // TAMBAHKAN KARTU ORDER (Mini)
-        function addActiveOrderCard(orderId, service, country, phone) {
-            const wrapper = document.getElementById('activeOrdersWrapper');
-            wrapper.style.display = 'flex'; // Pastikan terlihat
+        <div class="service-grid" id="serviceGrid">
+            <div class="card center" style="grid-column:1/-1"><span class="spinner spinner-lg"></span></div>
+        </div>
 
-            // Cek jika kartu sudah ada agar tidak duplikat
-            if(document.getElementById(`card-${orderId}`)) return;
+        <div class="pagination hidden" id="servicePager">
+            <button class="btn btn-secondary btn-sm" id="servicePrev"><i class="ph-bold ph-caret-left"></i> Sebelumnya</button>
+            <span class="small muted" id="servicePageInfo">Hal 1 / 1</span>
+            <button class="btn btn-secondary btn-sm" id="serviceNext">Selanjutnya <i class="ph-bold ph-caret-right"></i></button>
+        </div>
+    </section>
 
-            const cardHtml = `
-                <div class="order-mini-card" id="card-${orderId}">
-                    <div class="header-status">
-                        <span class="badge-wait" id="badge-${orderId}"><i class="ph-bold ph-spinner-gap ph-spin"></i> OTP...</span>
-                        <span class="order-id-text">${orderId}</span>
-                    </div>
-                    <div class="main-content">
-                        <div>
-                            <div style="font-size: 13px; opacity:0.8;">${service} - ${country}</div>
-                            <div class="phone-text" onclick="copyText('${phone}')">${phone} <i class="ph ph-copy" style="font-size:14px; opacity:0.5;"></i></div>
-                        </div>
-                        <div class="otp-display" id="otpBox-${orderId}">
-                            <i class="ph-spin ph-spinner-gap" style="font-size:20px; color:#ff9500;"></i>
-                        </div>
-                    </div>
-                    <div class="action-buttons">
-                        <button style="background: linear-gradient(135deg, #34c759 0%, #28a745 100%);" onclick="setOrderStatus('${orderId}', 'done')">Selesai</button>
-                        <button style="background: linear-gradient(135deg, #ff3b30 0%, #dc3545 100%);" onclick="setOrderStatus('${orderId}', 'cancel')">Batal</button>
-                    </div>
+    <!-- Langkah 2: negara -->
+    <section id="stepCountry" class="hidden">
+        <div class="row-between" style="margin-bottom:16px">
+            <div class="row">
+                <img id="selectedServiceImg" class="avatar avatar-sm" alt="" style="border-radius:9px">
+                <div>
+                    <h3 style="font-size:17px" id="selectedServiceName">Layanan</h3>
+                    <p class="tiny muted">Pilih negara dan harga</p>
                 </div>
-            `;
-            
-            // Tambahkan di urutan paling atas
-            wrapper.insertAdjacentHTML('afterbegin', cardHtml);
-            
-            // Mulai polling khusus untuk order ini
-            startPollingOtp(orderId);
+            </div>
+            <button class="btn btn-ghost btn-sm" id="backToServices"><i class="ph-bold ph-arrow-left"></i> Ganti</button>
+        </div>
+
+        <div class="field">
+            <input type="search" id="searchCountry" placeholder="Cari negara" autocomplete="off">
+        </div>
+
+        <div class="stack" id="countryList"></div>
+
+        <div class="pagination hidden" id="countryPager">
+            <button class="btn btn-secondary btn-sm" id="countryPrev"><i class="ph-bold ph-caret-left"></i> Sebelumnya</button>
+            <span class="small muted" id="countryPageInfo">Hal 1 / 1</span>
+            <button class="btn btn-secondary btn-sm" id="countryNext">Selanjutnya <i class="ph-bold ph-caret-right"></i></button>
+        </div>
+    </section>
+
+</main>
+
+<nav class="bottom-nav">
+    <a href="/dashboard"><i class="ph-bold ph-house"></i><span>Home</span></a>
+    <a href="/deposit"><i class="ph-bold ph-wallet"></i><span>Top Up</span></a>
+    <a href="/order"><i class="ph-fill ph-shopping-bag"></i><span>Order</span></a>
+    <a href="/riwayat"><i class="ph-bold ph-clock-counter-clockwise"></i><span>Riwayat</span></a>
+    <a href="/profile"><i class="ph-bold ph-user"></i><span>Profil</span></a>
+</nav>
+
+<script src="/js/app.js"></script>
+<script>
+App.ready(function () {
+    if (!App.Session.requireLogin()) return;
+
+    var esc = App.escapeHtml;
+    var PER_PAGE_SERVICE = 24;
+    var PER_PAGE_COUNTRY = 10;
+
+    var services = [], filteredServices = [], servicePage = 1;
+    var countries = [], filteredCountries = [], countryPage = 1;
+    var currentService = null;
+    var pollTimers = {};   // polling OTP per pesanan
+    var tickTimer = null;  // hitung mundur kedaluwarsa
+
+    App.siteConfig().then(function (config) {
+        if (config.siteName) {
+            document.querySelectorAll('[data-site-name]').forEach(function (el) { el.textContent = config.siteName; });
+        }
+    });
+
+    /* ----------------------------- Saldo ------------------------------- */
+    async function loadBalance() {
+        try {
+            var result = await App.api.get('/api/user/me');
+            document.getElementById('headerBalance').textContent = App.rupiah(result.data.balance);
+        } catch (e) { /* diabaikan */ }
+    }
+
+    /* -------------------------- Pesanan aktif -------------------------- */
+    async function loadActiveOrders() {
+        try {
+            var result = await App.api.get('/api/otp/active');
+            renderActiveOrders(result.data || []);
+        } catch (error) { /* diabaikan */ }
+    }
+
+    function renderActiveOrders(orders) {
+        var section = document.getElementById('activeSection');
+        var container = document.getElementById('activeOrders');
+
+        // Hentikan polling untuk pesanan yang sudah tidak aktif
+        Object.keys(pollTimers).forEach(function (id) {
+            if (!orders.some(function (o) { return o.orderId === id; })) {
+                clearInterval(pollTimers[id]);
+                delete pollTimers[id];
+            }
+        });
+
+        if (!orders.length) {
+            section.classList.add('hidden');
+            container.innerHTML = '';
+            return;
         }
 
-        function copyText(text) {
-            navigator.clipboard.writeText(text);
-            Toastify({ text: "Tersalin ke clipboard!", style: { background: "#000", color: "#fff", borderRadius: "14px" } }).showToast();
-        }
+        section.classList.remove('hidden');
+        document.getElementById('activeCount').textContent = orders.length + ' aktif';
 
-        // LOGIKA POLLING TERPISAH (TIAP DETIK CEK JIKA OTP KOSONG)
-        function startPollingOtp(orderId) {
-            if(otpIntervals[orderId]) clearInterval(otpIntervals[orderId]);
-            
-            otpIntervals[orderId] = setInterval(async () => {
-                try {
-                    const res = await fetch(`/api/otp/check-order?order_id=${orderId}`, { headers });
-                    const json = await res.json();
-                    
-                    if(json.success && json.data) {
-                        const d = json.data;
-                        
-                        // FIX: Jika server pusat bilang expired/batal
-                        if (d.status === 'canceled' || d.status === 'expiring' || d.status === 'refunded') {
-                            clearInterval(otpIntervals[orderId]);
-                            Toastify({ text: `Order ${orderId} dibatalkan server.`, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast();
-                            await fetch(`/api/otp/set-status?order_id=${orderId}&status=cancel`, { headers });
-                            document.getElementById(`card-${orderId}`).remove(); // Hapus kartu
-                            fetchProfile(); // Update saldo balik
-                            return;
-                        }
+        container.innerHTML = orders.map(function (order) {
+            var hasOtp = Boolean(order.otpCode);
+            return '<div class="order-card' + (hasOtp ? ' has-otp' : '') + '" id="card-' + esc(order.orderId) + '">' +
+                '<div class="row-between" style="margin-bottom:11px">' +
+                '<span class="badge ' + (hasOtp ? 'badge-success' : 'badge-warning') + '" id="badge-' + esc(order.orderId) + '">' +
+                (hasOtp ? '<i class="ph-fill ph-check-circle"></i> OTP Diterima' : '<span class="dot dot-pulse"></span> Menunggu OTP') +
+                '</span>' +
+                '<span class="tiny mono soft timer" data-expires="' + (order.expiresInSeconds || 0) + '">-</span>' +
+                '</div>' +
 
-                        // FIX: Jika OTP benar-benar ADA isinya (bukan null, bukan kosong)
-                        if(d.otp_code && d.otp_code.trim() !== '') {
-                            document.getElementById(`badge-${orderId}`).innerHTML = "<i class='ph-bold ph-check-circle'></i> SELESAI";
-                            document.getElementById(`badge-${orderId}`).style.background = "#000";
-                            
-                            const otpBox = document.getElementById(`otpBox-${orderId}`);
-                            otpBox.innerText = d.otp_code;
-                            otpBox.style.cursor = "pointer";
-                            otpBox.onclick = function() { copyText(d.otp_code); };
-                            
-                            document.getElementById(`card-${orderId}`).style.borderColor = "#34c759";
-                            clearInterval(otpIntervals[orderId]); // Hentikan cek karena sudah dapat
-                        }
-                        // JIKA KOSONG, KITA DIAMKAN SAJA AGAR TERUS LOOPING MENCARI OTP
+                '<div class="row-between" style="gap:14px">' +
+                '<div style="min-width:0">' +
+                '<div class="tiny muted truncate">' + esc(order.service) + ' &middot; ' + esc(order.country) + '</div>' +
+                '<div class="phone copyable" data-copy="' + esc(order.phoneNumber) + '">' + esc(order.phoneNumber) +
+                ' <i class="ph ph-copy" style="font-size:13px;opacity:.5"></i></div>' +
+                '</div>' +
+                '<div id="otp-' + esc(order.orderId) + '" style="text-align:right">' +
+                (hasOtp
+                    ? '<span class="otp-code copyable" data-copy="' + esc(order.otpCode) + '">' + esc(order.otpCode) + '</span>'
+                    : '<span class="spinner"></span>') +
+                '</div>' +
+                '</div>' +
+
+                '<div class="grid" style="grid-template-columns:1fr 1fr;gap:9px;margin-top:14px">' +
+                '<button class="btn btn-success btn-sm" data-done="' + esc(order.orderId) + '">Selesai</button>' +
+                '<button class="btn btn-secondary btn-sm" data-cancel="' + esc(order.orderId) + '">Batalkan</button>' +
+                '</div>' +
+                '<p class="tiny soft" style="margin-top:9px">Saldo dikembalikan penuh bila dibatalkan sebelum OTP masuk.</p>' +
+                '</div>';
+        }).join('');
+
+        bindOrderActions();
+        startTicker();
+
+        // Polling hanya untuk pesanan yang belum menerima OTP
+        orders.forEach(function (order) {
+            if (!order.otpCode && !pollTimers[order.orderId]) startPolling(order.orderId);
+        });
+    }
+
+    function bindOrderActions() {
+        document.querySelectorAll('[data-copy]').forEach(function (el) {
+            el.addEventListener('click', function () { App.copyText(el.getAttribute('data-copy')); });
+        });
+        document.querySelectorAll('[data-done]').forEach(function (button) {
+            button.addEventListener('click', function () { setStatus(button.getAttribute('data-done'), 'done', button); });
+        });
+        document.querySelectorAll('[data-cancel]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (!confirm('Batalkan pesanan ini? Saldo akan dikembalikan.')) return;
+                setStatus(button.getAttribute('data-cancel'), 'cancel', button);
+            });
+        });
+    }
+
+    function startTicker() {
+        if (tickTimer) clearInterval(tickTimer);
+        var tick = function () {
+            document.querySelectorAll('.timer[data-expires]').forEach(function (el) {
+                var remaining = Number(el.getAttribute('data-expires'));
+                if (remaining <= 0) { el.textContent = 'habis'; return; }
+                el.setAttribute('data-expires', remaining - 1);
+                var minutes = Math.floor(remaining / 60);
+                el.textContent = minutes + ':' + String(remaining % 60).padStart(2, '0');
+            });
+        };
+        tick();
+        tickTimer = setInterval(tick, 1000);
+    }
+
+    function startPolling(orderId) {
+        pollTimers[orderId] = setInterval(async function () {
+            if (document.visibilityState !== 'visible') return;
+            try {
+                var result = await App.api.get('/api/otp/check-order?order_id=' + encodeURIComponent(orderId));
+                var data = result.data;
+                if (!data) return;
+
+                if (data.otp_code && String(data.otp_code).trim()) {
+                    clearInterval(pollTimers[orderId]);
+                    delete pollTimers[orderId];
+
+                    var code = String(data.otp_code).trim();
+                    var box = document.getElementById('otp-' + orderId);
+                    if (box) {
+                        box.innerHTML = '<span class="otp-code copyable">' + esc(code) + '</span>';
+                        box.querySelector('.otp-code').addEventListener('click', function () { App.copyText(code); });
                     }
-                } catch (err) { console.error(`Error cek order ${orderId}`); }
-            }, 2000); // Cek setiap 2 detik 
-        }
+                    var badge = document.getElementById('badge-' + orderId);
+                    if (badge) {
+                        badge.className = 'badge badge-success';
+                        badge.innerHTML = '<i class="ph-fill ph-check-circle"></i> OTP Diterima';
+                    }
+                    var card = document.getElementById('card-' + orderId);
+                    if (card) card.classList.add('has-otp');
 
-        // EKSEKUSI ORDER BARU 
-        async function orderNumber(numberId, providerId, operatorId) {
-            try {
-                Toastify({ text: "Memproses...", style: { background: "#007AFF", borderRadius: "14px" } }).showToast();
-                const res = await fetch(`/api/otp/order?number_id=${numberId}&provider_id=${providerId}&operator_id=${operatorId || 1}`, { headers });
-                const json = await res.json();
-
-                if(json.success) {
-                    const data = json.data;
-                    
-                    // Tambahkan list ke kotak aktif
-                    addActiveOrderCard(data.order_id, selectedServiceName, data.country, data.phone_number);
-
-                    // Kembalikan form ke awal agar bisa order yang lain
-                    document.getElementById('stepCountryContainer').style.display = 'none';
-                    document.getElementById('stepServiceContainer').style.display = 'block';
-                    
-                    fetchProfile(); // Update saldo terpotong
-
-                    Toastify({ text: "Nomor didapatkan!", style: { background: "#34c759", borderRadius: "14px" } }).showToast();
-                } else { Toastify({ text: json.message || "Gagal memesan nomor", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
-            } catch (err) { Toastify({ text: "Terjadi kesalahan server", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
-        }
-
-        async function setOrderStatus(orderId, status) {
-            try {
-                const res = await fetch(`/api/otp/set-status?order_id=${orderId}&status=${status}`, { headers });
-                const json = await res.json();
-
-                if(json.success) {
-                    Toastify({ text: `Order ${status === 'done' ? 'Selesai' : 'Dibatalkan'}`, style: { background: "#34c759", borderRadius: "14px" } }).showToast();
-                    
-                    if(otpIntervals[orderId]) clearInterval(otpIntervals[orderId]);
-                    
-                    // Hilangkan kartu dari layar secara halus
-                    document.getElementById(`card-${orderId}`).style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById(`card-${orderId}`).remove();
-                        fetchProfile(); // Update saldo barangkali refund
-                    }, 500);
-                    
-                } else { Toastify({ text: json.message, style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
-            } catch (err) { Toastify({ text: "Gagal memproses permintaan", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
-        }
-
-        // RENDER HALAMAN LAYANAN (SEPERTI BIASA)
-        async function loadServices() {
-            try {
-                const res = await fetch('/api/otp/services', { headers });
-                const json = await res.json();
-                if(json.success) {
-                    allServices = json.data; filteredServices = allServices;
-                    document.getElementById('totalAppCount').innerText = `${allServices.length} App`;
-                    renderPage();
+                    App.toast('Kode OTP diterima: ' + code, 'success', 6000);
+                    return;
                 }
-            } catch (err) { console.error("Gagal memuat layanan"); }
-        }
 
-        function renderPage() {
-            const grid = document.getElementById('serviceGrid'); grid.innerHTML = '';
-            if(filteredServices.length === 0) {
-                grid.innerHTML = `<p style="opacity: 0.6; font-size: 14px; grid-column: span 2; text-align: center;">Tidak ditemukan.</p>`;
-                document.getElementById('paginationControls').style.display = 'none'; return;
-            }
-            const startIndex = (currentPage - 1) * itemsPerPage; const endIndex = startIndex + itemsPerPage;
-            const paginatedItems = filteredServices.slice(startIndex, endIndex);
-
-            paginatedItems.forEach(s => {
-                grid.innerHTML += `
-                    <div class="service-card" onclick="selectService(${s.service_code}, '${s.service_name}', '${s.service_img}')">
-                        <img src="${s.service_img}" alt="${s.service_name}">
-                        <div style="font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.service_name}</div>
-                    </div>`;
-            });
-            const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
-            if(totalPages > 1) {
-                document.getElementById('paginationControls').style.display = 'flex';
-                document.getElementById('pageInfo').innerText = `Hal ${currentPage} / ${totalPages}`;
-                document.getElementById('prevBtn').disabled = currentPage === 1;
-                document.getElementById('nextBtn').disabled = currentPage === totalPages;
-            } else { document.getElementById('paginationControls').style.display = 'none'; }
-        }
-
-        function changePage(direction) {
-            const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
-            currentPage += direction;
-            if(currentPage < 1) currentPage = 1; if(currentPage > totalPages) currentPage = totalPages;
-            renderPage(); window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function filterServices() {
-            const keyword = document.getElementById('searchApp').value.toLowerCase();
-            filteredServices = allServices.filter(s => s.service_name.toLowerCase().includes(keyword));
-            currentPage = 1; renderPage();
-        }
-
-        async function selectService(code, name, img) {
-            selectedServiceName = name; selectedServiceImg = img;
-            document.getElementById('stepServiceContainer').style.display = 'none';
-            document.getElementById('stepCountryContainer').style.display = 'block';
-            document.getElementById('selectedAppTitle').innerText = name;
-            document.getElementById('searchCountry').value = '';
-            loadCountries(code);
-        }
-
-        function backToServices() {
-            document.getElementById('stepCountryContainer').style.display = 'none';
-            document.getElementById('stepServiceContainer').style.display = 'block';
-        }
-
-        async function loadCountries(serviceId) {
-            try {
-                const container = document.getElementById('countryList');
-                container.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="ph-fill ph-spinner-gap ph-spin" style="font-size:30px; color:var(--active-color);"></i></div>`;
-                document.getElementById('countryPaginationControls').style.display = 'none';
-
-                const res = await fetch(`/api/otp/countries?service_id=${serviceId}`, { headers });
-                const json = await res.json();
-                if(json.success) {
-                    allCountries = json.data; filteredCountries = allCountries;
-                    currentCountryPage = 1; renderCountryPage();
+                if (['canceled', 'expired', 'refunded'].indexOf(data.status) !== -1) {
+                    clearInterval(pollTimers[orderId]);
+                    delete pollTimers[orderId];
+                    App.toast('Pesanan dibatalkan oleh server. Saldo dikembalikan.', 'warning');
+                    loadActiveOrders();
+                    loadBalance();
                 }
-            } catch (err) { Toastify({ text: "Gagal memuat negara", style: { background: "#ff3b30", borderRadius: "14px" } }).showToast(); }
-        }
-
-        function renderCountryPage() {
-            const container = document.getElementById('countryList'); container.innerHTML = '';
-            if(filteredCountries.length === 0) {
-                container.innerHTML = `<p style="opacity: 0.6; font-size: 14px; text-align: center;">Negara tidak ditemukan.</p>`;
-                document.getElementById('countryPaginationControls').style.display = 'none'; return;
+            } catch (error) {
+                // Pesanan sudah tidak ada: hentikan polling agar tidak terus gagal.
+                if (error.status === 404) {
+                    clearInterval(pollTimers[orderId]);
+                    delete pollTimers[orderId];
+                    loadActiveOrders();
+                }
             }
-            const startIndex = (currentCountryPage - 1) * countriesPerPage; const endIndex = startIndex + countriesPerPage;
-            const paginatedCountries = filteredCountries.slice(startIndex, endIndex);
+        }, 3000);
+    }
 
-            paginatedCountries.forEach((c, index) => {
-                let pricelistHtml = ''; const mainNumberId = c.number_id || 0;
-                if(c.pricelist && c.pricelist.length > 0) {
-                    c.pricelist.forEach(p => {
-                        const operatorId = p.operator_id || 1;
-                        pricelistHtml += `
-                            <div class="pricelist-row">
-                                <div style="font-size: 13px;">Stok: <span style="font-weight: 700;">${p.stock}</span> | Harga: <b style="color: #34c759;">${p.price_format}</b></div>
-                                <button class="btn" style="width: auto; padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 12px; background: var(--active-color); color: var(--active-text);" onclick="event.stopPropagation(); orderNumber(${mainNumberId}, ${p.provider_id}, ${operatorId})">Pilih</button>
-                            </div>`;
-                    });
-                } else { pricelistHtml = `<p style="font-size: 12px; opacity: 0.6; margin-top: 8px;">Stok kosong</p>`; }
+    async function setStatus(orderId, status, button) {
+        var restore = App.loadingButton(button, 'Memproses...');
+        try {
+            var result = await App.api.get('/api/otp/set-status?order_id=' + encodeURIComponent(orderId) + '&status=' + status);
+            App.toast(result.message || 'Berhasil.', 'success');
+            if (pollTimers[orderId]) { clearInterval(pollTimers[orderId]); delete pollTimers[orderId]; }
+            loadActiveOrders();
+            loadBalance();
+        } catch (error) {
+            App.toast(error.message, 'error');
+            restore();
+        }
+    }
 
-                container.innerHTML += `
-                    <div class="country-card" onclick="togglePricelist(${index})">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <img src="${c.img}" alt="${c.name}" width="32" style="border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                                <div>
-                                    <div style="font-weight: 800; font-size: 16px;">${c.name}</div>
-                                    <div style="font-size: 12px; opacity: 0.6; font-weight: 600;">Prefix: ${c.prefix}</div>
-                                </div>
-                            </div>
-                            <i class="ph ph-caret-down" id="icon-${index}" style="font-size: 20px; transition: transform 0.3s;"></i>
-                        </div>
-                        <div class="pricelist-container" id="pricelist-${index}">${pricelistHtml}</div>
-                    </div>`;
+    /* ---------------------------- Layanan ------------------------------ */
+    async function loadServices() {
+        var grid = document.getElementById('serviceGrid');
+        try {
+            var result = await App.api.get('/api/otp/services');
+            services = result.data || [];
+            filteredServices = services;
+            document.getElementById('serviceCount').textContent = services.length + ' aplikasi';
+            renderServices();
+        } catch (error) {
+            grid.innerHTML = '<div class="card empty-state" style="grid-column:1/-1">' +
+                '<i class="ph ph-warning-circle"></i><p class="small">' + esc(error.message) + '</p></div>';
+            document.getElementById('serviceCount').textContent = 'gagal dimuat';
+        }
+    }
+
+    function renderServices() {
+        var grid = document.getElementById('serviceGrid');
+        var pager = document.getElementById('servicePager');
+
+        if (!filteredServices.length) {
+            grid.innerHTML = '<div class="card empty-state" style="grid-column:1/-1">' +
+                '<i class="ph ph-magnifying-glass"></i><p class="small">Aplikasi tidak ditemukan.</p></div>';
+            pager.classList.add('hidden');
+            return;
+        }
+
+        var start = (servicePage - 1) * PER_PAGE_SERVICE;
+        grid.innerHTML = filteredServices.slice(start, start + PER_PAGE_SERVICE).map(function (service) {
+            return '<button type="button" class="service" data-code="' + esc(service.service_code) + '">' +
+                '<img src="' + esc(service.service_img) + '" alt="" loading="lazy">' +
+                '<span>' + esc(service.service_name) + '</span>' +
+                '</button>';
+        }).join('');
+
+        // Data layanan berasal dari API luar, jadi disimpan lewat dataset, bukan
+        // disisipkan ke dalam atribut onclick.
+        grid.querySelectorAll('.service').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var code = button.getAttribute('data-code');
+                var service = filteredServices.filter(function (s) { return String(s.service_code) === code; })[0];
+                if (service) selectService(service);
             });
-            const totalPages = Math.ceil(filteredCountries.length / countriesPerPage);
-            if(totalPages > 1) {
-                document.getElementById('countryPaginationControls').style.display = 'flex';
-                document.getElementById('countryPageInfo').innerText = `Hal ${currentCountryPage} / ${totalPages}`;
-                document.getElementById('countryPrevBtn').disabled = currentCountryPage === 1;
-                document.getElementById('countryNextBtn').disabled = currentCountryPage === totalPages;
-            } else { document.getElementById('countryPaginationControls').style.display = 'none'; }
+        });
+
+        var totalPages = Math.ceil(filteredServices.length / PER_PAGE_SERVICE);
+        pager.classList.toggle('hidden', totalPages <= 1);
+        document.getElementById('servicePageInfo').textContent = 'Hal ' + servicePage + ' / ' + totalPages;
+        document.getElementById('servicePrev').disabled = servicePage === 1;
+        document.getElementById('serviceNext').disabled = servicePage === totalPages;
+    }
+
+    document.getElementById('searchService').addEventListener('input', App.debounce(function (event) {
+        var keyword = event.target.value.toLowerCase();
+        filteredServices = services.filter(function (s) {
+            return String(s.service_name).toLowerCase().indexOf(keyword) !== -1;
+        });
+        servicePage = 1;
+        renderServices();
+    }, 250));
+
+    document.getElementById('servicePrev').addEventListener('click', function () {
+        if (servicePage > 1) { servicePage--; renderServices(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    });
+    document.getElementById('serviceNext').addEventListener('click', function () {
+        if (servicePage < Math.ceil(filteredServices.length / PER_PAGE_SERVICE)) {
+            servicePage++; renderServices(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+
+    /* ----------------------------- Negara ------------------------------ */
+    function selectService(service) {
+        currentService = service;
+        document.getElementById('stepService').classList.add('hidden');
+        document.getElementById('stepCountry').classList.remove('hidden');
+        document.getElementById('selectedServiceName').textContent = service.service_name;
+        document.getElementById('selectedServiceImg').src = service.service_img;
+        document.getElementById('searchCountry').value = '';
+        loadCountries(service.service_code);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('backToServices').addEventListener('click', function () {
+        document.getElementById('stepCountry').classList.add('hidden');
+        document.getElementById('stepService').classList.remove('hidden');
+    });
+
+    async function loadCountries(serviceCode) {
+        var container = document.getElementById('countryList');
+        container.innerHTML = '<div class="card center"><span class="spinner spinner-lg"></span></div>';
+        document.getElementById('countryPager').classList.add('hidden');
+
+        try {
+            var result = await App.api.get('/api/otp/countries?service_id=' + encodeURIComponent(serviceCode));
+            countries = result.data || [];
+            filteredCountries = countries;
+            countryPage = 1;
+            renderCountries();
+        } catch (error) {
+            container.innerHTML = '<div class="card empty-state"><i class="ph ph-warning-circle"></i>' +
+                '<p class="small">' + esc(error.message) + '</p></div>';
+        }
+    }
+
+    function renderCountries() {
+        var container = document.getElementById('countryList');
+        var pager = document.getElementById('countryPager');
+
+        if (!filteredCountries.length) {
+            container.innerHTML = '<div class="card empty-state"><i class="ph ph-globe"></i>' +
+                '<p class="small">Negara tidak ditemukan.</p></div>';
+            pager.classList.add('hidden');
+            return;
         }
 
-        function togglePricelist(index) {
-            const container = document.getElementById(`pricelist-${index}`); const icon = document.getElementById(`icon-${index}`);
-            if (container.style.display === 'block') { container.style.display = 'none'; icon.style.transform = 'rotate(0deg)'; } 
-            else { container.style.display = 'block'; icon.style.transform = 'rotate(180deg)'; }
-        }
+        var start = (countryPage - 1) * PER_PAGE_COUNTRY;
+        var pageItems = filteredCountries.slice(start, start + PER_PAGE_COUNTRY);
 
-        function changeCountryPage(direction) {
-            const totalPages = Math.ceil(filteredCountries.length / countriesPerPage); currentCountryPage += direction;
-            if(currentCountryPage < 1) currentCountryPage = 1; if(currentCountryPage > totalPages) currentCountryPage = totalPages;
-            renderCountryPage(); window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        container.innerHTML = pageItems.map(function (country, index) {
+            var prices = (country.pricelist || []).map(function (price) {
+                var outOfStock = Number(price.stock) <= 0;
+                return '<div class="price-row">' +
+                    '<div class="small">Stok <strong>' + esc(price.stock) + '</strong> &middot; ' +
+                    '<strong style="color:var(--success)">' + esc(price.price_format) + '</strong></div>' +
+                    '<button class="btn btn-sm" ' + (outOfStock ? 'disabled' : '') +
+                    ' data-order="' + index + '" data-provider="' + esc(price.provider_id) + '"' +
+                    ' data-operator="' + esc(price.operator_id || 1) + '">' +
+                    (outOfStock ? 'Kosong' : 'Pesan') + '</button>' +
+                    '</div>';
+            }).join('');
 
-        function filterCountries() {
-            const keyword = document.getElementById('searchCountry').value.toLowerCase();
-            filteredCountries = allCountries.filter(c => c.name.toLowerCase().includes(keyword) || c.prefix.includes(keyword));
-            currentCountryPage = 1; renderCountryPage();
-        }
+            return '<div class="country" data-index="' + index + '">' +
+                '<button type="button" class="country-head">' +
+                '<img src="' + esc(country.img) + '" alt="" loading="lazy">' +
+                '<span><span style="display:block;font-weight:800">' + esc(country.name) + '</span>' +
+                '<span class="tiny soft">Prefix ' + esc(country.prefix) + ' &middot; ' +
+                ((country.pricelist || []).length) + ' penyedia</span></span>' +
+                '<i class="ph-bold ph-caret-down caret"></i>' +
+                '</button>' +
+                '<div class="country-body">' + (prices || '<p class="small soft">Stok kosong.</p>') + '</div>' +
+                '</div>';
+        }).join('');
 
-        // INITIALIZATION
-        fetchProfile();
-        loadServices();
-        checkActiveOrder();
-    </script>
+        container.querySelectorAll('.country-head').forEach(function (head) {
+            head.addEventListener('click', function () { head.parentElement.classList.toggle('open'); });
+        });
+
+        container.querySelectorAll('[data-order]').forEach(function (button) {
+            button.addEventListener('click', function (event) {
+                event.stopPropagation();
+                var country = pageItems[Number(button.getAttribute('data-order'))];
+                orderNumber(
+                    country.number_id || 0,
+                    button.getAttribute('data-provider'),
+                    button.getAttribute('data-operator'),
+                    button
+                );
+            });
+        });
+
+        var totalPages = Math.ceil(filteredCountries.length / PER_PAGE_COUNTRY);
+        pager.classList.toggle('hidden', totalPages <= 1);
+        document.getElementById('countryPageInfo').textContent = 'Hal ' + countryPage + ' / ' + totalPages;
+        document.getElementById('countryPrev').disabled = countryPage === 1;
+        document.getElementById('countryNext').disabled = countryPage === totalPages;
+    }
+
+    document.getElementById('searchCountry').addEventListener('input', App.debounce(function (event) {
+        var keyword = event.target.value.toLowerCase();
+        filteredCountries = countries.filter(function (c) {
+            return String(c.name).toLowerCase().indexOf(keyword) !== -1 || String(c.prefix).indexOf(keyword) !== -1;
+        });
+        countryPage = 1;
+        renderCountries();
+    }, 250));
+
+    document.getElementById('countryPrev').addEventListener('click', function () {
+        if (countryPage > 1) { countryPage--; renderCountries(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    });
+    document.getElementById('countryNext').addEventListener('click', function () {
+        if (countryPage < Math.ceil(filteredCountries.length / PER_PAGE_COUNTRY)) {
+            countryPage++; renderCountries(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+
+    /* ---------------------------- Pemesanan ---------------------------- */
+    async function orderNumber(numberId, providerId, operatorId, button) {
+        var restore = App.loadingButton(button, 'Memesan...');
+        try {
+            await App.api.get('/api/otp/order?number_id=' + encodeURIComponent(numberId) +
+                '&provider_id=' + encodeURIComponent(providerId) +
+                '&operator_id=' + encodeURIComponent(operatorId || 1));
+
+            App.toast('Nomor berhasil dipesan.', 'success');
+            document.getElementById('stepCountry').classList.add('hidden');
+            document.getElementById('stepService').classList.remove('hidden');
+            await loadActiveOrders();
+            loadBalance();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+            App.toast(error.message, 'error');
+        } finally {
+            restore();
+        }
+    }
+
+    loadBalance();
+    loadServices();
+    loadActiveOrders();
+});
+</script>
 </body>
 </html>

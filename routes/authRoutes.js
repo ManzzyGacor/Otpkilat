@@ -10,7 +10,10 @@ const authLimiter = rateLimit({
     max: 20,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, message: 'Terlalu banyak percobaan. Coba lagi dalam 15 menit.' }
+    // Hanya percobaan yang gagal yang dihitung, sehingga pengguna sah di balik
+    // satu IP bersama (jaringan seluler, kantor) tidak ikut terblokir.
+    skipSuccessfulRequests: true,
+    message: { success: false, message: 'Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.' }
 });
 
 router.post('/register', authLimiter, authController.register);

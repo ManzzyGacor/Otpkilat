@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const depositController = require('../controllers/depositController');
 const { verifyToken } = require('../middleware/auth');
+const { blockWhenMaintenance } = require('../middleware/maintenance');
 
-router.use(verifyToken);
+router.use(verifyToken, blockWhenMaintenance);
 
 router.get('/methods', depositController.getPaymentMethods);
 router.get('/history', depositController.getHistory);

@@ -312,9 +312,11 @@ exports.adjustUserBalance = async (req, res) => {
             updated.balance = 0;
         }
 
+        const adjustmentId = `ADM-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         await Deposit.create({
             user: updated._id,
-            deposit_id: `ADM-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            deposit_id: adjustmentId,
+            depositId: adjustmentId,
             amount: type === 'add' ? nominal : -nominal,
             payAmount: 0,
             method: 'admin-adjustment',

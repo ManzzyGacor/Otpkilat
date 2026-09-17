@@ -122,9 +122,13 @@ exports.createDeposit = async (req, res) => {
         }
 
         // Mode manual: buat instruksi transfer, admin mengonfirmasi lewat dashboard.
+        const manualId = genId('TRX');
         const deposit = await Deposit.create({
             user: req.user.id,
-            deposit_id: genId('TRX'),
+            deposit_id: manualId,
+            // Selalu diisi: sebagian database lama punya index unik non-sparse di
+            // kolom ini, sehingga beberapa dokumen bernilai null akan bentrok.
+            depositId: manualId,
             amount,
             payAmount,
             fee,
