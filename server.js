@@ -7,7 +7,7 @@ const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 
 const connectDB = require('./config/db');
-const { getSettings } = require('./utils/settings');
+const { getSettings, assertJwtSecret } = require('./utils/settings');
 const { seedDefaults } = require('./config/seed');
 
 const app = express();
@@ -94,6 +94,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 const start = async () => {
+    // Berhenti sekarang juga bila rahasia sesi belum diatur, bukan setelah
+    // pengguna pertama terlanjur login dengan token yang bisa dipalsukan.
+    assertJwtSecret();
     await connectDB();
     await seedDefaults();
     app.listen(PORT, () => console.log(`Server berjalan di port ${PORT}`));

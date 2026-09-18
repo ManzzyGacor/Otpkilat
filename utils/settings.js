@@ -64,12 +64,32 @@ const invalidateSettingsCache = () => {
     cachedAt = 0;
 };
 
+const MIN_SECRET_LENGTH = 32;
+
 /**
  * Rahasia JWT. Sengaja dibaca sinkron dari env karena middleware auth berjalan
  * pada setiap request; nilai yang berubah-ubah akan membatalkan semua sesi.
+ *
+ * Tidak ada nilai bawaan: rahasia yang tertulis di kode sumber bersifat publik,
+ * dan server yang tetap jalan tanpa SESSION_SECRET akan menerima token palsu
+ * yang ditandatangani siapa pun. Lebih baik berhenti daripada diam-diam rapuh.
  */
-const getJwtSecret = () => process.env.SESSION_SECRET || process.env.JWT_SECRET || 'kilatotp-dev-secret-change-me';
+const getJwtSecret = () => {
+    const secret = process.env.SESSION_SECRET || process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error('SESSION_SECRET belum diatur. Isi di berkas .env dengan string acak yang panjang.');
+    }
+    return secret;
+};
+
+/** Dipanggil sekali saat server dinyalakan supaya salah konfigurasi ketahuan langsung. */
+const assertJwtSecret = () => {
+    const secret = getJwtSecret();
+    if (secret.length < MIN_SECRET_LENGTH) {
+        throw new Error(`SESSION_SECRET terlalu pendek (minimal ${MIN_SECRET_LENGTH} karakter).`);
+    }
+};
 
 const getMargin = async () => (await getSettings()).marginProfit;
 
-module.exports = { getSettings, getSettingDoc, invalidateSettingsCache, getJwtSecret, getMargin };
+module.exports = { getSettings, getSettingDoc, invalidateSettingsCache, getJwtSecret, assertJwtSecret, getMargin };

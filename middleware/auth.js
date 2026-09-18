@@ -3,16 +3,16 @@ const User = require('../models/User');
 const { getJwtSecret } = require('../utils/settings');
 
 /**
- * Ambil token dari header Authorization (mendukung "Bearer <token>" maupun token polos)
- * atau dari query string ?token= untuk kebutuhan redirect.
+ * Ambil token hanya dari header Authorization ("Bearer <token>" atau token polos).
+ *
+ * Token sengaja tidak lagi diterima dari query string: nilai di URL ikut tercatat
+ * di log proxy dan riwayat peramban, sedangkan seluruh frontend memang selalu
+ * mengirimkannya lewat header.
  */
 const extractToken = (req) => {
     const header = req.header('Authorization') || req.header('authorization');
-    if (header) {
-        return header.startsWith('Bearer ') ? header.slice(7).trim() : header.trim();
-    }
-    if (req.query && req.query.token) return String(req.query.token);
-    return null;
+    if (!header) return null;
+    return header.startsWith('Bearer ') ? header.slice(7).trim() : header.trim();
 };
 
 /**

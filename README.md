@@ -31,7 +31,9 @@ Buka `http://localhost:3000`.
 Hanya tiga nilai yang dibaca dari `.env`:
 
 - `MONGODB_URI` — alamat database
-- `SESSION_SECRET` — kunci penandatangan token login
+- `SESSION_SECRET` — kunci penandatangan token login, minimal 32 karakter acak.
+  Buat dengan `openssl rand -base64 48`. Server menolak menyala bila kosong
+  atau terlalu pendek, karena kunci lemah membuat token sesi bisa dipalsukan.
 - `PORT` — port server (opsional, bawaan 3000)
 
 Sisanya diatur lewat **Admin > Pengaturan** dan tersimpan di database:
@@ -57,6 +59,15 @@ Dikelola di **Admin > Pembayaran**, dengan dua mode:
 
 Kode unik opsional ditambahkan ke nominal transfer manual agar pembayaran
 mudah dicocokkan.
+
+## Catatan keamanan
+
+- Login Google hanya aktif setelah Client ID dan Client Secret diisi di
+  Admin > Pengaturan. Selama belum diisi, seluruh jalur login Google menolak
+  permintaan, termasuk endpoint token.
+- Token sesi hanya diterima lewat header `Authorization`, tidak lewat URL.
+- Callback Google mewajibkan cookie `state` yang cocok, sehingga tautan callback
+  milik orang lain tidak bisa dipakai memaksa korban masuk ke akun penyerang.
 
 ## Mode siang dan malam
 

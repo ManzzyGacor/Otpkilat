@@ -5,6 +5,15 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { getSettings, getJwtSecret } = require('../utils/settings');
 
+const GOOGLE_ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];
+
+/**
+ * Google mengembalikan email_verified sebagai boolean pada userinfo dan sebagai
+ * string pada tokeninfo, sehingga keduanya harus diterima.
+ * Nilai yang tidak dikenal dianggap belum terverifikasi.
+ */
+const isEmailVerified = (profile) => profile.email_verified === true || profile.email_verified === 'true';
+
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
@@ -249,11 +258,14 @@ exports.googleCallback = async (req, res) => {
         if (oauthError) return renderHandoff(res, { error: 'Login Google dibatalkan.' });
         if (!code) return renderHandoff(res, { error: 'Kode otorisasi Google tidak diterima.' });
 
-        const expectedState = req.cookies ? req.cookies.g_state : null;
-        if (expectedState && state !== expectedState) {
-            return renderHandoff(res, { error: 'Verifikasi keamanan gagal. Silakan ulangi.' });
-        }
+        // Cookie state WAJIB ada dan cocok. Sebelumnya pemeriksaan dilewati begitu
+        // saja bila cookie tidak ada, sehingga penyerang bisa mengirimkan URL
+        // callback miliknya ke korban dan memaksa korban masuk ke akun penyerang.
+        const expectedState = req.cookies && req.cookies.g_state;
         res.clearCookie('g_state');
+        if (!expectedState || !state || String(state) !== String(expectedState)) {
+            return renderHandoff(res, { error: 'Verifikasi keamanan gagal. Silakan ulangi dari halaman login.' });
+        }
 
         const settings = await getSettings();
         if (!settings.googleClientId || !settings.googleClientSecret) {
@@ -280,7 +292,7 @@ exports.googleCallback = async (req, res) => {
         if (!profile.sub || !profile.email) {
             return renderHandoff(res, { error: 'Profil Google tidak lengkap.' });
         }
-        if (profile.email_verified === false) {
+        if (!isEmailVerified(profile)) {
             return renderHandoff(res, { error: 'Email Google Anda belum terverifikasi.' });
         }
 
@@ -338,16 +350,39 @@ exports.googleToken = async (req, res) => {
         if (!idToken) return res.status(400).json({ success: false, message: 'Token Google tidak dikirim.' });
 
         const settings = await getSettings();
+
+        // Tanpa Client ID tidak ada pembanding audience, sehingga token milik
+        // aplikasi Google mana pun akan diterima. Rute ditutup rapat.
+        if (!settings.googleClientId) {
+            return res.status(503).json({ success: false, message: 'Login Google belum dikonfigurasi admin.' });
+        }
+
         const { data: profile } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
             params: { id_token: idToken },
             timeout: 15000
         });
 
-        if (!profile || !profile.sub) {
+        if (!profile || !profile.sub || !profile.email) {
             return res.status(401).json({ success: false, message: 'Token Google tidak valid.' });
         }
-        if (settings.googleClientId && profile.aud !== settings.googleClientId) {
+
+        // Audience wajib sama dengan Client ID situs ini, tanpa pengecualian.
+        if (profile.aud !== settings.googleClientId) {
             return res.status(401).json({ success: false, message: 'Token Google bukan untuk aplikasi ini.' });
+        }
+
+        if (!GOOGLE_ISSUERS.includes(String(profile.iss))) {
+            return res.status(401).json({ success: false, message: 'Penerbit token Google tidak dikenal.' });
+        }
+
+        // tokeninfo mengembalikan nilai boolean sebagai string, jadi keduanya diperiksa.
+        if (!isEmailVerified(profile)) {
+            return res.status(401).json({ success: false, message: 'Email Google Anda belum terverifikasi.' });
+        }
+
+        const expiry = Number(profile.exp);
+        if (Number.isFinite(expiry) && expiry * 1000 <= Date.now()) {
+            return res.status(401).json({ success: false, message: 'Token Google sudah kedaluwarsa.' });
         }
 
         const user = await findOrCreateGoogleUser(profile);
