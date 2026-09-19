@@ -1,25 +1,29 @@
-{{
+{
   "name": "kilatotp",
-  "version": "1.0.0",
-  "description": "Website Nokos dan OTP",
+  "version": "2.0.0",
+  "description": "KilatOTP - Platform Virtual Number & OTP",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "vercel-build": "echo \"tidak ada langkah build\""
   },
   "dependencies": {
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.2",
-    "multer": "^1.4.5-lts.1",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }

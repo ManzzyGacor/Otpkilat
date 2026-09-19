@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+*.log
+npm-debug.log*
+.DS_Store
+tmp/
+
+# Artefak ekspor (bundle/patch) bukan bagian dari kode sumber
+*.patch
+*.bundle

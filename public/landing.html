@@ -1,151 +1,537 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KilatOTP - Solusi Virtual Number & PPOB</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <style>
-        /* Animasi tambahan khusus Landing Page */
-        .hero-section {
-            text-align: center;
-            padding: 60px 20px 40px;
-        }
-        .hero-section h1 {
-            font-size: 32px;
-            margin-bottom: 15px;
-            line-height: 1.2;
-        }
-        .hero-section p {
-            font-size: 16px;
-            opacity: 0.8;
-            margin-bottom: 30px;
-            line-height: 1.5;
-        }
-        
-        .feature-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-top: 30px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f8fc">
+<title>KilatOTP — Virtual Number & OTP Otomatis untuk Bisnis</title>
+<meta name="description" content="Platform virtual number dan OTP dengan 1.700+ layanan, harga transparan, dan penerimaan kode instan. Top up mudah, dashboard rapi, dukungan 24/7.">
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<!-- Tema disetel sebelum halaman digambar agar tidak berkedip saat memuat -->
+<script>
+(function(){try{var t=localStorage.getItem('kilatotp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+    .hero { position: relative; padding: 76px 0 84px; overflow: hidden; }
+    .hero::before {
+        content: ''; position: absolute; top: -220px; left: 50%; transform: translateX(-50%);
+        width: 900px; height: 620px; pointer-events: none;
+        background: radial-gradient(circle at 50% 50%, var(--primary-soft) 0%, transparent 68%);
+        opacity: 0.9;
+    }
+    .hero-inner { position: relative; text-align: center; max-width: 760px; margin: 0 auto; }
+    .hero h1 { margin-bottom: 20px; }
+    .hero h1 .grad {
+        background: linear-gradient(120deg, var(--primary), var(--accent));
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero-sub { font-size: 17px; color: var(--text-muted); max-width: 580px; margin: 0 auto 30px; }
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .hero-trust {
+        display: flex; flex-wrap: wrap; gap: 22px; justify-content: center;
+        margin-top: 34px; font-size: 13px; color: var(--text-soft); font-weight: 600;
+    }
+    .hero-trust span { display: inline-flex; align-items: center; gap: 6px; }
+    .hero-trust i { color: var(--success); font-size: 16px; }
 
-        @media (min-width: 768px) {
-            .feature-grid { grid-template-columns: repeat(2, 1fr); }
-            .hero-section h1 { font-size: 42px; }
-        }
+    .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--border);
+        border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 52px; }
+    @media (min-width: 720px) { .metrics { grid-template-columns: repeat(4, 1fr); } }
+    .metric { background: var(--surface); padding: 24px 18px; text-align: center; }
+    .metric-value { font-size: 27px; font-weight: 800; letter-spacing: -0.03em; }
+    .metric-label { font-size: 12px; color: var(--text-soft); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px; }
 
-        .feature-card {
-            padding: 24px;
-            text-align: left;
-            transition: transform 0.3s ease;
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-        }
+    .feature-icon {
+        width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center;
+        background: var(--primary-soft); color: var(--primary); font-size: 22px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 17px; margin-bottom: 9px; }
+    .feature-card p { font-size: 14px; color: var(--text-muted); }
 
-        .feature-card h3 {
-            font-size: 18px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .step { display: flex; gap: 16px; align-items: flex-start; }
+    .step-num {
+        width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+        display: grid; place-items: center; font-weight: 800; font-size: 14px;
+        background: var(--primary); color: var(--primary-contrast);
+    }
+    .step h4 { margin-bottom: 5px; }
+    .step p { font-size: 14px; color: var(--text-muted); }
 
-        .feature-card p {
-            font-size: 14px;
-            opacity: 0.75;
-            line-height: 1.6;
-        }
+    /* Bagian promosi mitra */
+    .partner-band { background: var(--surface-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .partner-card {
+        position: relative; overflow: hidden;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--radius-lg); padding: 28px;
+        display: flex; flex-direction: column; gap: 16px;
+        transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+    }
+    .partner-card:hover { transform: translateY(-4px); border-color: var(--primary); box-shadow: var(--shadow); }
+    .partner-card::after {
+        content: ''; position: absolute; right: -60px; top: -60px; width: 190px; height: 190px;
+        border-radius: 50%; opacity: 0.12; pointer-events: none;
+    }
+    .partner-sewa::after { background: #6366f1; }
+    .partner-jadi::after { background: #10b981; }
+    .partner-logo {
+        width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center;
+        font-size: 26px; color: #fff; flex-shrink: 0;
+    }
+    .partner-sewa .partner-logo { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .partner-jadi .partner-logo { background: linear-gradient(135deg, #10b981, #0ea5e9); }
+    .partner-list { display: flex; flex-direction: column; gap: 9px; margin: 2px 0 4px; }
+    .partner-list li { display: flex; gap: 9px; align-items: flex-start; font-size: 14px; color: var(--text-muted); }
+    .partner-list i { color: var(--success); font-size: 16px; margin-top: 2px; flex-shrink: 0; }
+    .partner-url { font-size: 13px; font-weight: 700; color: var(--primary); }
 
-        /* Smooth Emoji Animation */
-        .animated-emoji {
-            display: inline-block;
-            font-size: 24px;
-            animation: float 3s ease-in-out infinite;
-        }
+    .price-card { display: flex; flex-direction: column; gap: 14px; }
+    .price-card .price { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
+    .price-card .price small { font-size: 14px; font-weight: 600; color: var(--text-soft); }
+    .price-featured { border-color: var(--primary); box-shadow: var(--shadow); position: relative; }
+    .price-featured::before {
+        content: 'Paling Populer'; position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+        background: var(--primary); color: var(--primary-contrast);
+        font-size: 11px; font-weight: 800; padding: 4px 13px; border-radius: var(--radius-pill);
+        text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
+    }
 
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-6px); }
-            100% { transform: translateY(0px); }
-        }
+    .faq-item { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); margin-bottom: 11px; overflow: hidden; }
+    .faq-q {
+        width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 14px;
+        padding: 17px 19px; background: none; border: none; cursor: pointer;
+        font-family: inherit; font-size: 15px; font-weight: 700; color: var(--text); text-align: left;
+    }
+    .faq-q i { flex-shrink: 0; color: var(--text-soft); transition: transform var(--transition); }
+    .faq-item.open .faq-q i { transform: rotate(180deg); color: var(--primary); }
+    .faq-a { padding: 0 19px 18px; font-size: 14px; color: var(--text-muted); display: none; }
+    .faq-item.open .faq-a { display: block; }
 
-        .about-section {
-            margin-top: 60px;
-            margin-bottom: 60px;
-            text-align: center;
-            padding: 40px 20px;
-        }
-    </style>
+    .cta-band {
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        border-radius: var(--radius-lg); padding: 48px 28px; text-align: center; color: #fff;
+    }
+    .cta-band h2 { color: #fff; margin-bottom: 12px; }
+    .cta-band p { color: rgba(255, 255, 255, 0.9); max-width: 470px; margin: 0 auto 24px; }
+    .cta-band .btn { background: #fff; color: #4338ca; }
+    .cta-band .btn:hover { background: rgba(255, 255, 255, 0.9); }
+
+    .site-footer { border-top: 1px solid var(--border); padding: 44px 0 30px; background: var(--surface); }
+    .footer-grid { display: grid; gap: 30px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .footer-col h5 { font-size: 13px; font-weight: 800; margin: 0 0 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-soft); }
+    .footer-col a { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 9px; }
+    .footer-col a:hover { color: var(--primary); }
+    .footer-bottom { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-soft); text-align: center; }
+
+    .nav-links { display: none; }
+    @media (min-width: 900px) { .nav-links { display: flex; } }
+</style>
 </head>
 <body>
 
+<header class="topbar">
     <div class="container">
-        
-        <!-- Hero Section -->
-        <section class="hero-section">
-            <h1>Solusi Digital Cerdas,<br>Tanpa Ribet.</h1>
-            <p>Platform terpadu untuk kebutuhan Virtual Number dan PPOB dengan performa tinggi, keamanan terjamin, dan harga yang sangat kompetitif.</p>
-            <button class="btn" style="max-width: 250px;" onclick="window.location.href='/register'">
-                Mulai Sekarang <i class="ph ph-arrow-right" style="vertical-align: middle; margin-left: 5px;"></i>
+        <a href="/" class="brand">
+            <span class="brand-mark"><i class="ph-fill ph-lightning"></i></span>
+            <span data-site-name>KilatOTP</span>
+        </a>
+
+        <nav class="nav-links">
+            <a href="#fitur">Fitur</a>
+            <a href="#cara-kerja">Cara Kerja</a>
+            <a href="#mitra">Layanan Bot</a>
+            <a href="#harga">Harga</a>
+            <a href="#faq">FAQ</a>
+        </nav>
+
+        <div class="row" style="gap:8px">
+            <button class="theme-toggle" data-theme-toggle type="button">
+                <i class="ph-bold ph-sun icon-light"></i>
+                <i class="ph-bold ph-moon icon-dark"></i>
             </button>
-        </section>
+            <a href="/login" class="btn btn-secondary btn-sm">Masuk</a>
+            <a href="/register" class="btn btn-sm">Daftar Gratis</a>
+        </div>
+    </div>
+</header>
 
-        <!-- Fitur Unggulan Section -->
-        <section style="text-align: center; margin-top: 20px;">
-            <h2 style="font-size: 24px; margin-bottom: 10px;">Keunggulan Layanan Kami</h2>
-            <p style="opacity: 0.7; font-size: 15px;">Ekosistem digital yang dirancang untuk kecepatan, keamanan, dan kenyamanan Anda.</p>
+<main>
 
-            <div class="feature-grid">
-                <!-- Fitur 1 -->
-                <div class="liquid-glass feature-card">
-                    <h3><span class="animated-emoji" style="animation-delay: 0s;">🚀</span> 1700+ Layanan Aktif</h3>
-                    <p>Akses tanpa batas ke ribuan opsi layanan dengan jaminan harga terbaik tanpa mengorbankan kualitas jaringan.</p>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container hero-inner page-enter">
+            <span class="eyebrow"><i class="ph-fill ph-lightning"></i> Virtual Number Platform</span>
+            <h1>Nomor virtual &amp; <span class="grad">kode OTP</span> masuk dalam hitungan detik.</h1>
+            <p class="hero-sub">
+                Satu dashboard untuk memesan nomor, memantau kode masuk, dan mengelola saldo.
+                Harga transparan, saldo kembali penuh bila nomor gagal menerima kode.
+            </p>
+            <div class="hero-cta">
+                <a href="/register" class="btn btn-lg">Mulai Gratis <i class="ph-bold ph-arrow-right"></i></a>
+                <a href="#cara-kerja" class="btn btn-secondary btn-lg">Lihat Cara Kerja</a>
+            </div>
+            <div class="hero-trust">
+                <span><i class="ph-fill ph-check-circle"></i> Tanpa biaya langganan</span>
+                <span><i class="ph-fill ph-check-circle"></i> Refund otomatis</span>
+                <span><i class="ph-fill ph-check-circle"></i> Dukungan 24/7</span>
+            </div>
+
+            <div class="metrics" data-reveal>
+                <div class="metric"><div class="metric-value">1.700+</div><div class="metric-label">Layanan</div></div>
+                <div class="metric"><div class="metric-value">180+</div><div class="metric-label">Negara</div></div>
+                <div class="metric"><div class="metric-value">&lt; 10 dtk</div><div class="metric-label">Rata-rata OTP</div></div>
+                <div class="metric"><div class="metric-value">99,9%</div><div class="metric-label">Uptime</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Fitur -->
+    <section class="section" id="fitur" data-reveal>
+        <div class="container">
+            <div class="section-head" data-reveal>
+                <span class="eyebrow">Fitur</span>
+                <h2>Semua yang dibutuhkan, tanpa yang tidak perlu</h2>
+                <p>Dirancang untuk pemakaian harian: cepat dipahami pengguna baru, cukup lengkap untuk yang sudah terbiasa.</p>
+            </div>
+
+            <div class="grid grid-3">
+                <article class="card card-hover feature-card">
+                    <div class="feature-icon"><i class="ph-fill ph-lightning"></i></div>
+                    <h3>Penerimaan Instan</h3>
+                    <p>Kode masuk langsung tampil di dashboard tanpa perlu menyegarkan halaman, lengkap dengan tombol salin.</p>
+                </article>
+                <article class="card card-hover feature-card">
+                    <div class="feature-icon"><i class="ph-fill ph-globe-hemisphere-west"></i></div>
+                    <h3>Ribuan Layanan</h3>
+                    <p>WhatsApp, Telegram, Instagram, dan ratusan aplikasi lain dari lebih dari 180 negara dalam satu tempat.</p>
+                </article>
+                <article class="card card-hover feature-card">
+                    <div class="feature-icon"><i class="ph-fill ph-arrow-u-down-left"></i></div>
+                    <h3>Refund Otomatis</h3>
+                    <p>Nomor tidak menerima kode sampai batas waktu? Saldo dikembalikan penuh tanpa perlu mengajukan tiket.</p>
+                </article>
+                <article class="card card-hover feature-card">
+                    <div class="feature-icon"><i class="ph-fill ph-wallet"></i></div>
+                    <h3>Top Up Fleksibel</h3>
+                    <p>QRIS, transfer bank, dan dompet digital. Metode pembayaran diatur langsung oleh admin dari dashboard.</p>
+                </article>
+                <article class="card card-hover feature-card">
+                    <div class="feature-icon"><i class="ph-fill ph-bell-ringing"></i></div>
+                    <h3>Notifikasi Telegram</h3>
+                    <p>Log transaksi dan kode OTP dikirim ke channel Telegram, jadi tetap terpantau walau situs sedang ditutup.</p>
+                </article>
+                <article class="card card-hover feature-card">
+                    <div class="feature-icon"><i class="ph-fill ph-moon-stars"></i></div>
+                    <h3>Mode Siang &amp; Malam</h3>
+                    <p>Tampilan mengikuti preferensi perangkat, dan bisa diganti manual kapan saja lewat satu tombol.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cara kerja -->
+    <section class="section" id="cara-kerja" style="background: var(--surface-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+        <div class="container">
+            <div class="section-head" data-reveal>
+                <span class="eyebrow">Cara Kerja</span>
+                <h2>Empat langkah, selesai</h2>
+                <p>Dari mendaftar sampai kode OTP diterima, rata-rata hanya butuh waktu di bawah satu menit.</p>
+            </div>
+
+            <div class="grid grid-2" style="max-width: 860px; margin: 0 auto;">
+                <div class="card step">
+                    <div class="step-num">1</div>
+                    <div><h4>Buat Akun</h4><p>Daftar dengan email atau langsung lewat akun Google. Tidak ada biaya pendaftaran.</p></div>
                 </div>
-
-                <!-- Fitur 2 -->
-                <div class="liquid-glass feature-card">
-                    <h3><span class="animated-emoji" style="animation-delay: 0.2s;">⚙️</span> Pembaruan Sistem Berkala</h3>
-                    <p>Infrastruktur dan API kami senantiasa dioptimalkan untuk memastikan performa dan stabilitas operasional maksimal.</p>
+                <div class="card step">
+                    <div class="step-num">2</div>
+                    <div><h4>Isi Saldo</h4><p>Pilih metode pembayaran yang tersedia, bayar sesuai nominal, saldo langsung masuk setelah dikonfirmasi.</p></div>
                 </div>
-
-                <!-- Fitur 3 -->
-                <div class="liquid-glass feature-card">
-                    <h3><span class="animated-emoji" style="animation-delay: 0.4s;">⚡</span> Penerimaan Instan</h3>
-                    <p>Teknologi mutakhir kami memastikan kode OTP dan notifikasi masuk seketika tanpa jeda atau gangguan koneksi.</p>
+                <div class="card step">
+                    <div class="step-num">3</div>
+                    <div><h4>Pesan Nomor</h4><p>Cari aplikasi yang dituju, pilih negara dengan stok dan harga paling cocok, lalu pesan.</p></div>
                 </div>
-
-                <!-- Fitur 4 -->
-                <div class="liquid-glass feature-card">
-                    <h3><span class="animated-emoji" style="animation-delay: 0.6s;">🛡️</span> Keamanan Terjamin</h3>
-                    <p>Berkomitmen penuh dalam menjaga privasi serta integritas data demi menciptakan ekosistem transaksi yang terpercaya.</p>
-                </div>
-
-                <!-- Fitur 5 -->
-                <div class="liquid-glass feature-card">
-                    <h3><span class="animated-emoji" style="animation-delay: 0.8s;">🎧</span> Dukungan Eksklusif 24/7</h3>
-                    <p>Tim ahli kami selalu siaga memberikan solusi cepat dan tanggap untuk kelancaran transaksi Anda setiap saat.</p>
-                </div>
-
-                <!-- Fitur 6 -->
-                <div class="liquid-glass feature-card">
-                    <h3><span class="animated-emoji" style="animation-delay: 1.0s;">📚</span> Dokumentasi Komprehensif</h3>
-                    <p>Panduan integrasi API yang terstruktur rapi untuk memudahkan proses pengembangan bagi para developer.</p>
+                <div class="card step">
+                    <div class="step-num">4</div>
+                    <div><h4>Terima Kode</h4><p>Kode OTP muncul otomatis di dashboard. Tekan salin, tempel di aplikasi tujuan, selesai.</p></div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- About Us Section -->
-        <section class="liquid-glass about-section">
-            <h2 style="margin-bottom: 15px;">Tentang KilatOTP</h2>
-            <p style="opacity: 0.8; line-height: 1.7; font-size: 15px;">
-                KilatOTP hadir sebagai inovator penyedia layanan otentikasi digital terdepan. Kami memadukan arsitektur teknologi modern dengan antarmuka yang intuitif untuk menjembatani kebutuhan bisnis maupun individu. Misi kami adalah menghadirkan kemudahan akses digital yang reliabel, efisien, dan transparan di setiap langkahnya.
-            </p>
-        </section>
+    <!-- Promosi mitra -->
+    <section class="section partner-band" id="mitra" data-reveal>
+        <div class="container">
+            <div class="section-head" data-reveal>
+                <span class="eyebrow">Ekosistem</span>
+                <h2>Butuh bot WhatsApp juga?</h2>
+                <p>Dua layanan mitra kami melengkapi kebutuhan otomasi Anda, mulai dari menyewa bot siap pakai sampai membangun bot milik sendiri.</p>
+            </div>
 
+            <div class="grid grid-2" style="max-width: 900px; margin: 0 auto;">
+
+                <article class="partner-card partner-sewa">
+                    <div class="row">
+                        <div class="partner-logo"><i class="ph-fill ph-robot"></i></div>
+                        <div>
+                            <h3 style="margin-bottom:2px">Sewa Bot</h3>
+                            <span class="badge badge-primary">Siap pakai</span>
+                        </div>
+                    </div>
+                    <p class="muted small">
+                        Sewa bot WhatsApp yang sudah jadi dan langsung aktif. Cocok bila Anda ingin
+                        otomasi berjalan hari ini juga tanpa mengurus server dan pemeliharaan.
+                    </p>
+                    <ul class="partner-list" style="list-style:none;padding:0;margin:0">
+                        <li><i class="ph-fill ph-check-circle"></i> Aktif dalam hitungan menit, tanpa setup teknis</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Fitur lengkap dan panel yang mudah dipakai</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Server dan pembaruan diurus tim mitra</li>
+                    </ul>
+                    <div>
+                        <a href="https://sewa.manzzy.web.id" target="_blank" rel="noopener noreferrer" class="btn btn-block">
+                            Kunjungi Sewa Bot <i class="ph-bold ph-arrow-up-right"></i>
+                        </a>
+                        <p class="partner-url center" style="margin-top:10px">sewa.manzzy.web.id</p>
+                    </div>
+                </article>
+
+                <article class="partner-card partner-jadi">
+                    <div class="row">
+                        <div class="partner-logo"><i class="ph-fill ph-code"></i></div>
+                        <div>
+                            <h3 style="margin-bottom:2px">Jadi Bot</h3>
+                            <span class="badge badge-success">Bot sendiri</span>
+                        </div>
+                    </div>
+                    <p class="muted small">
+                        Punya bot WhatsApp atas nama sendiri, dengan nama, fitur, dan branding yang Anda tentukan.
+                        Pilihan tepat untuk yang ingin menjalankan layanan sendiri.
+                    </p>
+                    <ul class="partner-list" style="list-style:none;padding:0;margin:0">
+                        <li><i class="ph-fill ph-check-circle"></i> Nama dan tampilan bot sepenuhnya milik Anda</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Fitur bisa disesuaikan dengan kebutuhan</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Dipandu sampai bot berjalan normal</li>
+                    </ul>
+                    <div>
+                        <a href="https://varesa.mom" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-block">
+                            Kunjungi Jadi Bot <i class="ph-bold ph-arrow-up-right"></i>
+                        </a>
+                        <p class="partner-url center" style="margin-top:10px;color:var(--success)">varesa.mom</p>
+                    </div>
+                </article>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Harga -->
+    <section class="section" id="harga">
+        <div class="container">
+            <div class="section-head" data-reveal>
+                <span class="eyebrow">Harga</span>
+                <h2>Bayar sesuai pemakaian</h2>
+                <p>Tidak ada biaya bulanan dan tidak ada minimum pemakaian. Saldo Anda hanya terpotong saat nomor berhasil dipesan.</p>
+            </div>
+
+            <div class="grid grid-3" style="max-width: 940px; margin: 0 auto;">
+                <article class="card price-card">
+                    <div>
+                        <h3>Coba Dulu</h3>
+                        <p class="muted small">Untuk kebutuhan sesekali.</p>
+                    </div>
+                    <div class="price">Rp5.000 <small>/ top up minimum</small></div>
+                    <ul class="partner-list" style="list-style:none;padding:0;margin:0">
+                        <li><i class="ph-fill ph-check-circle"></i> Akses seluruh layanan</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Refund otomatis</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Riwayat transaksi lengkap</li>
+                    </ul>
+                    <a href="/register" class="btn btn-secondary btn-block">Mulai Sekarang</a>
+                </article>
+
+                <article class="card price-card price-featured">
+                    <div>
+                        <h3>Pemakaian Rutin</h3>
+                        <p class="muted small">Untuk yang memesan setiap hari.</p>
+                    </div>
+                    <div class="price">Rp50.000 <small>/ top up</small></div>
+                    <ul class="partner-list" style="list-style:none;padding:0;margin:0">
+                        <li><i class="ph-fill ph-check-circle"></i> Semua keunggulan paket sebelumnya</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Pesan banyak nomor bersamaan</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Notifikasi Telegram</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Prioritas dukungan</li>
+                    </ul>
+                    <a href="/register" class="btn btn-block">Daftar Gratis</a>
+                </article>
+
+                <article class="card price-card">
+                    <div>
+                        <h3>Reseller</h3>
+                        <p class="muted small">Untuk volume besar.</p>
+                    </div>
+                    <div class="price">Nego <small>/ hubungi kami</small></div>
+                    <ul class="partner-list" style="list-style:none;padding:0;margin:0">
+                        <li><i class="ph-fill ph-check-circle"></i> Harga khusus per volume</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Pendampingan langsung</li>
+                        <li><i class="ph-fill ph-check-circle"></i> Jalur dukungan terpisah</li>
+                    </ul>
+                    <a href="#" class="btn btn-secondary btn-block" data-support-link target="_blank" rel="noopener noreferrer">Hubungi Kami</a>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq" style="background: var(--surface-2); border-top: 1px solid var(--border);">
+        <div class="container container-narrow">
+            <div class="section-head" data-reveal>
+                <span class="eyebrow">FAQ</span>
+                <h2>Pertanyaan yang sering muncul</h2>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-q" type="button"><span>Bagaimana kalau kode OTP tidak kunjung masuk?</span><i class="ph-bold ph-caret-down"></i></button>
+                <div class="faq-a">
+                    Nomor virtual bergantung pada ketersediaan jaringan operator, jadi wajar bila sesekali gagal.
+                    Bila sampai batas waktu kode tidak masuk, pesanan otomatis dibatalkan dan saldo kembali penuh
+                    tanpa potongan. Anda juga bisa membatalkan sendiri setelah dua menit pertama.
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" type="button"><span>Berapa lama saldo masuk setelah saya membayar?</span><i class="ph-bold ph-caret-down"></i></button>
+                <div class="faq-a">
+                    Untuk metode otomatis, saldo masuk segera setelah pembayaran terdeteksi. Untuk transfer manual,
+                    admin mengonfirmasi lewat dashboard, umumnya dalam beberapa menit pada jam operasional.
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" type="button"><span>Apakah satu nomor bisa dipakai berulang kali?</span><i class="ph-bold ph-caret-down"></i></button>
+                <div class="faq-a">
+                    Tidak. Setiap pesanan memberi satu nomor untuk satu kali penerimaan kode pada layanan yang dipilih.
+                    Bila butuh kode lagi, silakan buat pesanan baru.
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" type="button"><span>Apakah saya bisa memesan beberapa nomor sekaligus?</span><i class="ph-bold ph-caret-down"></i></button>
+                <div class="faq-a">
+                    Bisa. Selama saldo mencukupi, semua pesanan aktif tampil berdampingan di halaman order,
+                    masing-masing dengan status dan kode OTP-nya sendiri.
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" type="button"><span>Apakah data saya aman?</span><i class="ph-bold ph-caret-down"></i></button>
+                <div class="faq-a">
+                    Password disimpan dalam bentuk terenkripsi satu arah dan tidak pernah bisa dibaca kembali.
+                    Sesi login memakai token berbatas waktu, dan setiap permintaan diverifikasi ulang di sisi server.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section">
+        <div class="container">
+            <div class="cta-band" data-reveal>
+                <h2>Siap mencoba?</h2>
+                <p>Buat akun gratis hari ini, isi saldo mulai dari lima ribu rupiah, dan pesan nomor pertama Anda.</p>
+                <a href="/register" class="btn btn-lg">Daftar Sekarang <i class="ph-bold ph-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <a href="/" class="brand" style="margin-bottom:12px">
+                    <span class="brand-mark"><i class="ph-fill ph-lightning"></i></span>
+                    <span data-site-name>KilatOTP</span>
+                </a>
+                <p class="small muted" style="max-width:260px">
+                    Platform virtual number dan OTP untuk kebutuhan verifikasi harian maupun bisnis.
+                </p>
+            </div>
+            <div class="footer-col">
+                <h5>Produk</h5>
+                <a href="#fitur">Fitur</a>
+                <a href="#harga">Harga</a>
+                <a href="#cara-kerja">Cara Kerja</a>
+                <a href="/register">Daftar</a>
+            </div>
+            <div class="footer-col">
+                <h5>Layanan Bot</h5>
+                <a href="https://sewa.manzzy.web.id" target="_blank" rel="noopener noreferrer">Sewa Bot</a>
+                <a href="https://varesa.mom" target="_blank" rel="noopener noreferrer">Jadi Bot</a>
+            </div>
+            <div class="footer-col">
+                <h5>Bantuan</h5>
+                <a href="#faq">FAQ</a>
+                <a href="#" data-support-link target="_blank" rel="noopener noreferrer">Hubungi Dukungan</a>
+                <a href="/login">Masuk</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; <span id="year"></span> <span data-site-name>KilatOTP</span>. Seluruh hak cipta dilindungi.
+        </div>
     </div>
+</footer>
 
+<script src="/js/app.js"></script>
+<script>
+App.ready(function () {
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Accordion FAQ
+    document.querySelectorAll('.faq-q').forEach(function (button) {
+        button.addEventListener('click', function () {
+            button.parentElement.classList.toggle('open');
+        });
+    });
+
+    // Gulir halus untuk tautan dalam halaman
+    document.querySelectorAll('a[href^="#"]').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            var target = document.querySelector(link.getAttribute('href'));
+            if (!target) return;
+            event.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Kartu muncul berurutan saat tergulir mendekat
+    document.querySelectorAll('.feature-grid, .grid-3, .grid-2').forEach(function (grid) {
+        App.Motion.stagger(grid, 60);
+    });
+
+    // Bayangan tipis pada topbar begitu halaman digulir
+    var topbar = document.querySelector('.topbar');
+    var onScroll = function () {
+        if (!topbar) return;
+        topbar.style.boxShadow = window.scrollY > 8 ? 'var(--shadow-sm)' : 'none';
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Nama situs dan tautan dukungan mengikuti pengaturan admin
+    App.siteConfig().then(function (config) {
+        if (config.siteName) {
+            document.querySelectorAll('[data-site-name]').forEach(function (el) { el.textContent = config.siteName; });
+            document.title = config.siteName + ' — Virtual Number & OTP Otomatis untuk Bisnis';
+        }
+        if (config.supportUrl) {
+            document.querySelectorAll('[data-support-link]').forEach(function (el) { el.href = config.supportUrl; });
+        }
+    });
+
+    // Pengunjung yang sudah login diarahkan ke dashboard lewat tombol yang sesuai
+    if (App.Session.token()) {
+        document.querySelectorAll('a[href="/register"], a[href="/login"]').forEach(function (el) {
+            el.setAttribute('href', '/dashboard');
+            if (/Daftar|Masuk|Mulai/i.test(el.textContent)) el.textContent = 'Buka Dashboard';
+        });
+    }
+});
+</script>
 </body>
 </html>

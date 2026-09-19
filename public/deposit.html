@@ -1,174 +1,500 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KilatOTP - Deposit Saldo</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <style>
-        .qr-box {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .qr-img {
-            max-width: 200px;
-            border-radius: 12px;
-            margin: 15px auto;
-            border: 4px solid var(--glass-border);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f8fc">
+<title>Top Up Saldo — KilatOTP</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script>
+(function(){try{var t=localStorage.getItem('kilatotp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+    .method-list { display: grid; gap: 11px; }
+    .method {
+        display: flex; align-items: center; gap: 13px;
+        padding: 15px; border-radius: var(--radius-sm);
+        border: 1px solid var(--border); background: var(--surface);
+        cursor: pointer; text-align: left; width: 100%;
+        font-family: inherit; color: var(--text);
+        transition: border-color var(--transition), background-color var(--transition);
+    }
+    .method:hover { border-color: var(--primary); }
+    .method.selected { border-color: var(--primary); background: var(--primary-soft); }
+    .method-logo {
+        width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+        display: grid; place-items: center; font-size: 21px;
+        background: var(--surface-2); color: var(--primary); overflow: hidden;
+    }
+    .method-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .method-check { margin-left: auto; color: var(--primary); font-size: 20px; opacity: 0; flex-shrink: 0; }
+    .method.selected .method-check { opacity: 1; }
+
+    .nominal-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 13px; }
+    .chip {
+        padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+        background: var(--surface); color: var(--text);
+        font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+        transition: border-color var(--transition), background-color var(--transition);
+    }
+    .chip:hover { border-color: var(--primary); }
+    .chip.active { background: var(--primary); color: var(--primary-contrast); border-color: var(--primary); }
+
+    .summary-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 14px; }
+    .summary-row.total { border-top: 1px dashed var(--border); margin-top: 7px; padding-top: 12px; font-size: 17px; font-weight: 800; }
+
+    .pay-amount { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; color: var(--primary); }
+    .qr-box { text-align: center; padding: 18px; background: #fff; border-radius: var(--radius); display: inline-block; }
+    .qr-box img { width: 210px; height: 210px; object-fit: contain; }
+
+    .account-box {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 14px; border-radius: var(--radius-sm);
+        background: var(--surface-2); border: 1px dashed var(--border-strong);
+    }
+    .countdown { font-variant-numeric: tabular-nums; font-weight: 800; }
+</style>
 </head>
 <body>
 
+<header class="topbar">
     <div class="container">
-        <h2 style="margin-bottom: 20px;">Top Up Saldo</h2>
+        <a href="/dashboard" class="brand">
+            <span class="brand-mark"><i class="ph-fill ph-lightning"></i></span>
+            <span data-site-name>KilatOTP</span>
+        </a>
+        <div class="row" style="gap:8px">
+            <span class="badge badge-success"><i class="ph-fill ph-wallet"></i> <span id="headerBalance">Rp0</span></span>
+            <button class="theme-toggle" data-theme-toggle type="button">
+                <i class="ph-bold ph-sun icon-light"></i>
+                <i class="ph-bold ph-moon icon-dark"></i>
+            </button>
+        </div>
+    </div>
+</header>
 
-        <!-- Form Pembuatan Deposit -->
-        <div class="liquid-glass" style="padding: 20px; margin-bottom: 30px;">
-            <form id="depositForm">
-                <div class="form-group">
-                    <label style="font-size: 14px; opacity: 0.8; margin-bottom: 8px; display: block;">Nominal (IDR)</label>
-                    <input type="number" id="depositAmount" placeholder="Min: 2.000 | Max: 1.000.000" min="2000" max="1000000" required>
-                    <small style="font-size: 12px; opacity: 0.6; margin-top: 5px; display: block;">Minimum deposit Rp2.000 dan Maksimum Rp1.000.000</small>
-                </div>
-                
-                <div class="form-group">
-                    <label style="font-size: 14px; opacity: 0.8; margin-bottom: 8px; display: block;">Metode Pembayaran</label>
-                    <select id="paymentMethod" style="width: 100%; padding: 15px; border-radius: 14px; border: 1px solid var(--glass-border); background: transparent; color: var(--text-color); font-size: 16px; outline: none;">
-                        <option value="qris" style="background: var(--bg-color);">QRIS (Instan)</option>
-                        <option value="usdt-trc-20" style="background: var(--bg-color);">USDT TRC-20 (V2)</option>
-                    </select>
-                </div>
+<main class="container container-narrow app-shell page-enter">
 
-                <button type="submit" class="btn">Buat Permintaan Deposit</button>
-            </form>
+    <h2 style="margin-bottom:6px">Top Up Saldo</h2>
+    <p class="muted small" style="margin-bottom:22px">Pilih metode pembayaran, masukkan nominal, lalu selesaikan pembayaran.</p>
+
+    <!-- Tagihan aktif -->
+    <div id="pendingSection" class="hidden" style="margin-bottom:22px"></div>
+
+    <!-- Form pembuatan tagihan -->
+    <div id="formSection">
+        <div class="card" style="margin-bottom:18px">
+            <div class="card-head"><span class="card-title">1. Metode Pembayaran</span></div>
+            <div class="method-list" id="methodList">
+                <div class="row"><span class="spinner"></span> <span class="muted small">Memuat metode pembayaran...</span></div>
+            </div>
         </div>
 
-<!-- Hasil QR / Instruksi Pembayaran (Hidden Default) -->
-<div class="liquid-glass qr-box" id="depositResultBox" style="display: none; padding: 20px;">
-    <h3>Scan QR Pembayaran</h3>
-    <p id="depositIdText" style="font-size: 12px; opacity: 0.6; margin-top: 5px;"></p>
-    <img id="qrImageElement" src="" alt="QR Code" class="qr-img">
-    <p id="totalBayarText" style="font-weight: 600; font-size: 18px; margin: 10px 0;"></p>
-    <p id="statusDepositText" style="font-size: 14px; color: #ff9500;">Status: Pending</p>
-    
-    <!-- Tombol Cek Status Pembayaran Manual -->
-    <button class="btn" style="background-color: #34c759; margin-top: 10px;" onclick="checkDepositStatus()">Cek Status Pembayaran</button>
-    <button class="btn" style="background-color: #ff3b30; margin-top: 10px;" onclick="cancelDeposit()">Batalkan Transaksi</button>
-</div>
+        <div class="card" style="margin-bottom:18px">
+            <div class="card-head"><span class="card-title">2. Nominal Top Up</span></div>
+
+            <div class="nominal-chips" id="nominalChips">
+                <button type="button" class="chip" data-amount="10000">10 rb</button>
+                <button type="button" class="chip" data-amount="25000">25 rb</button>
+                <button type="button" class="chip" data-amount="50000">50 rb</button>
+                <button type="button" class="chip" data-amount="100000">100 rb</button>
+                <button type="button" class="chip" data-amount="250000">250 rb</button>
+                <button type="button" class="chip" data-amount="500000">500 rb</button>
+            </div>
+
+            <div class="field" style="margin-bottom:0">
+                <label for="amountInput">Atau masukkan nominal sendiri</label>
+                <div class="input-group">
+                    <span class="prefix">Rp</span>
+                    <input type="number" id="amountInput" inputmode="numeric" placeholder="50000" min="0" step="1000">
+                </div>
+                <span class="field-hint" id="limitHint">Memuat batas nominal...</span>
+            </div>
+        </div>
+
+        <div class="card" id="summaryCard" style="margin-bottom:18px">
+            <div class="card-head"><span class="card-title">3. Ringkasan</span></div>
+            <div class="summary-row"><span class="muted">Saldo diterima</span><strong id="sumAmount">Rp0</strong></div>
+            <div class="summary-row"><span class="muted">Biaya layanan</span><strong id="sumFee">Rp0</strong></div>
+            <div class="summary-row"><span class="muted">Kode unik</span><strong id="sumUnique" class="soft">ditentukan saat tagihan dibuat</strong></div>
+            <div class="summary-row total"><span>Total bayar</span><span id="sumTotal">Rp0</span></div>
+            <button class="btn btn-block" id="createBtn" style="margin-top:16px" disabled>Buat Tagihan</button>
+        </div>
     </div>
 
-    <!-- Floating Bottom Navbar -->
-    <nav class="floating-nav liquid-glass">
-        <a href="/" class="nav-item">
-            <i class="ph ph-house"></i><span>Home</span>
-        </a>
-        <a href="/deposit" class="nav-item active">
-            <i class="ph ph-wallet"></i><span>Deposit</span>
-        </a>
-        <a href="/order" class="nav-item">
-            <i class="ph ph-shopping-cart"></i><span>Order</span>
-        </a>
-        <a href="/riwayat" class="nav-item">
-            <i class="ph ph-clock-counter-clockwise"></i><span>Riwayat</span>
-        </a>
-        <a href="/profile" class="nav-item">
-            <i class="ph ph-user"></i><span>Profile</span>
-        </a>
-    </nav>
+    <!-- Riwayat -->
+    <section style="margin-top:12px">
+        <div class="row-between" style="margin-bottom:13px">
+            <h3 style="font-size:16px">Riwayat Top Up</h3>
+            <button class="btn btn-ghost btn-sm" id="refreshHistory"><i class="ph-bold ph-arrows-clockwise"></i> Segarkan</button>
+        </div>
+        <div id="historyList"><div class="card"><span class="spinner"></span></div></div>
+    </section>
 
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script>
-        const token = localStorage.getItem('token');
-        if(!token) window.location.href = '/login';
+</main>
 
-        let activeDepositId = null;
-        let activeVersion = 'v1';
+<nav class="bottom-nav">
+    <a href="/dashboard"><i class="ph-bold ph-house"></i><span>Home</span></a>
+    <a href="/deposit"><i class="ph-fill ph-wallet"></i><span>Top Up</span></a>
+    <a href="/order"><i class="ph-bold ph-shopping-bag"></i><span>Order</span></a>
+    <a href="/riwayat"><i class="ph-bold ph-clock-counter-clockwise"></i><span>Riwayat</span></a>
+    <a href="/profile"><i class="ph-bold ph-user"></i><span>Profil</span></a>
+</nav>
 
-        document.getElementById('depositForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const amount = Number(document.getElementById('depositAmount').value);
-            
-            // Validasi client-side tambahan
-            if (amount < 2000 || amount > 1000000) {
-                Toastify({ text: "Nominal harus di antara Rp2.000 hingga Rp1.000.000", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
+<script src="/js/app.js"></script>
+<script>
+App.ready(function () {
+    if (!App.Session.requireLogin()) return;
+
+    var esc = App.escapeHtml;
+    var methods = [];
+    var selected = null;
+    var limits = { min: 0, max: Infinity };
+    var countdownTimer = null;
+
+    App.siteConfig().then(function (config) {
+        if (config.siteName) {
+            document.querySelectorAll('[data-site-name]').forEach(function (el) { el.textContent = config.siteName; });
+        }
+    });
+
+    /* --------------------------- Saldo header -------------------------- */
+    async function loadBalance() {
+        try {
+            var result = await App.api.get('/api/user/me');
+            App.Motion.countUp(document.getElementById('headerBalance'), result.data.balance, App.rupiah);
+        } catch (e) { /* diabaikan */ }
+    }
+
+    /* ------------------------ Metode pembayaran ------------------------ */
+    async function loadMethods() {
+        var list = document.getElementById('methodList');
+        try {
+            var result = await App.api.get('/api/deposit/methods');
+            methods = result.data || [];
+            limits = result.limits || limits;
+
+            if (!methods.length) {
+                list.innerHTML = '<div class="empty-state"><i class="ph ph-credit-card"></i>' +
+                    '<p class="small">Belum ada metode pembayaran aktif. Hubungi admin.</p></div>';
                 return;
             }
 
-            const method = document.getElementById('paymentMethod').value;
-            activeVersion = method === 'usdt-trc-20' ? 'v2' : 'v1';
+            list.innerHTML = methods.map(function (method, index) {
+                var logo = method.logoUrl
+                    ? '<img src="' + esc(method.logoUrl) + '" alt="">'
+                    : '<i class="ph-fill ph-' + (method.mode === 'gateway' ? 'lightning' : 'bank') + '"></i>';
+                var feeText = [];
+                if (method.feePercent) feeText.push(method.feePercent + '%');
+                if (method.feeFlat) feeText.push(App.rupiah(method.feeFlat));
 
-            try {
-                Toastify({ text: "Membuat tagihan deposit...", style: { background: "#007AFF", color: "#fff", borderRadius: "14px" } }).showToast();
-                
-                const res = await fetch(`/api/deposit/create?amount=${amount}&payment_id=${method}&version=${activeVersion}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                return '<button type="button" class="method" data-index="' + index + '">' +
+                    '<span class="method-logo">' + logo + '</span>' +
+                    '<span>' +
+                    '<span style="display:block;font-weight:700">' + esc(method.name) + '</span>' +
+                    '<span class="tiny soft">' + App.rupiah(method.minAmount) + ' - ' + App.rupiah(method.maxAmount) +
+                    (feeText.length ? ' &middot; biaya ' + feeText.join(' + ') : ' &middot; tanpa biaya') +
+                    '</span>' +
+                    '</span>' +
+                    '<i class="ph-fill ph-check-circle method-check"></i>' +
+                    '</button>';
+            }).join('');
+
+            Array.prototype.forEach.call(list.querySelectorAll('.method'), function (button) {
+                button.addEventListener('click', function () {
+                    selectMethod(Number(button.getAttribute('data-index')));
                 });
-                const json = await res.json();
+            });
 
-                if(json.success) {
-                    const data = json.data;
-                    activeDepositId = data.id;
-
-                    document.getElementById('depositIdText').innerText = `ID: ${data.id}`;
-                    document.getElementById('qrImageElement').src = data.qr_image;
-                    
-                    const totalTagihan = data.currency ? data.currency.total : data.total;
-                    document.getElementById('totalBayarText').innerText = `Total: ${typeof totalTagihan === 'number' ? 'Rp' + totalTagihan.toLocaleString('id-ID') : totalTagihan}`;
-                    
-                    document.getElementById('depositResultBox').style.display = 'block';
-                    Toastify({ text: "Tagihan berhasil dibuat!", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
-                } else {
-                    Toastify({ text: "Gagal membuat deposit", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-                }
-            } catch (err) {
-                Toastify({ text: "Terjadi kesalahan koneksi", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
-        });
-
-// Tambahkan fungsi untuk cek status deposit secara manual
-async function checkDepositStatus() {
-    if(!activeDepositId) return;
-    try {
-        const res = await fetch(`/api/deposit/check?deposit_id=${activeDepositId}&version=${activeVersion}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const json = await res.json();
-        
-        if(json.success) {
-            const status = json.data.status;
-            document.getElementById('statusDepositText').innerText = `Status: ${status}`;
-            
-            if(status === 'success' || status === 'paid') {
-                Toastify({ text: "Deposit Berhasil! Saldo telah bertambah.", style: { background: "#34c759", color: "#fff", borderRadius: "14px" } }).showToast();
-                setTimeout(() => window.location.href = '/', 2000);
-            } else {
-                Toastify({ text: `Status: ${status}`, style: { background: "#ff9500", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
+            selectMethod(0);
+        } catch (error) {
+            list.innerHTML = '<div class="empty-state"><p class="small">' + esc(error.message) + '</p></div>';
         }
-    } catch (err) {
-        console.error("Gagal cek status deposit");
     }
-}
 
-        async function cancelDeposit() {
-            if(!activeDepositId) return;
-            try {
-                const res = await fetch(`/api/deposit/cancel?deposit_id=${activeDepositId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const json = await res.json();
-                if(json.success) {
-                    Toastify({ text: "Deposit dibatalkan", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-                    document.getElementById('depositResultBox').style.display = 'none';
-                    activeDepositId = null;
-                }
-            } catch (err) {
-                Toastify({ text: "Gagal membatalkan deposit", style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" } }).showToast();
-            }
+    function selectMethod(index) {
+        selected = methods[index];
+        Array.prototype.forEach.call(document.querySelectorAll('.method'), function (el, i) {
+            el.classList.toggle('selected', i === index);
+        });
+        updateLimitHint();
+        updateSummary();
+    }
+
+    function effectiveLimits() {
+        if (!selected) return limits;
+        return {
+            min: Math.max(selected.minAmount || 0, limits.min || 0),
+            max: Math.min(selected.maxAmount || Infinity, limits.max || Infinity)
+        };
+    }
+
+    function updateLimitHint() {
+        var range = effectiveLimits();
+        document.getElementById('limitHint').textContent =
+            'Nominal ' + App.rupiah(range.min) + ' sampai ' + App.rupiah(range.max) + '.';
+    }
+
+    /* ---------------------------- Ringkasan ---------------------------- */
+    function currentAmount() {
+        return Math.round(Number(document.getElementById('amountInput').value) || 0);
+    }
+
+    function updateSummary() {
+        var amount = currentAmount();
+        var range = effectiveLimits();
+        var fee = selected
+            ? Math.ceil((amount * (selected.feePercent || 0)) / 100) + (selected.feeFlat || 0)
+            : 0;
+
+        document.getElementById('sumAmount').textContent = App.rupiah(amount);
+        document.getElementById('sumFee').textContent = App.rupiah(fee);
+        document.getElementById('sumTotal').textContent = App.rupiah(amount + fee);
+
+        var unique = document.getElementById('sumUnique');
+        unique.textContent = (selected && selected.mode === 'manual' && amount)
+            ? 'ditentukan saat tagihan dibuat'
+            : 'tidak ada';
+
+        var valid = Boolean(selected) && amount >= range.min && amount <= range.max;
+        document.getElementById('createBtn').disabled = !valid;
+    }
+
+    document.getElementById('amountInput').addEventListener('input', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (chip) {
+            chip.classList.toggle('active', Number(chip.getAttribute('data-amount')) === currentAmount());
+        });
+        updateSummary();
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (chip) {
+        chip.addEventListener('click', function () {
+            document.getElementById('amountInput').value = chip.getAttribute('data-amount');
+            Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (c) {
+                c.classList.toggle('active', c === chip);
+            });
+            updateSummary();
+        });
+    });
+
+    /* -------------------------- Buat tagihan --------------------------- */
+    document.getElementById('createBtn').addEventListener('click', async function () {
+        if (!selected) return;
+        var amount = currentAmount();
+        var restore = App.loadingButton(this, 'Membuat tagihan...');
+        try {
+            var result = await App.api.post('/api/deposit/create', { amount: amount, method: selected.code });
+            App.toast('Tagihan dibuat. Silakan selesaikan pembayaran.', 'success');
+            renderPending([result.data]);
+            loadHistory();
+        } catch (error) {
+            App.toast(error.message, 'error');
+        } finally {
+            restore();
         }
-    </script>
+    });
+
+    /* ------------------------- Tagihan aktif --------------------------- */
+    async function loadPending() {
+        try {
+            var result = await App.api.get('/api/deposit/pending');
+            renderPending(result.data || []);
+        } catch (e) { /* diabaikan */ }
+    }
+
+    function renderPending(list) {
+        var section = document.getElementById('pendingSection');
+        var form = document.getElementById('formSection');
+
+        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+
+        if (!list || !list.length) {
+            section.classList.add('hidden');
+            section.innerHTML = '';
+            form.classList.remove('hidden');
+            return;
+        }
+
+        form.classList.add('hidden');
+        section.classList.remove('hidden');
+
+        section.innerHTML = list.map(function (deposit) {
+            var payment = '';
+
+            if (deposit.qrImageUrl) {
+                payment = '<div class="center" style="margin:16px 0">' +
+                    '<div class="qr-box"><img src="' + esc(deposit.qrImageUrl) + '" alt="Kode QR pembayaran"></div></div>';
+            } else if (deposit.accountNumber) {
+                payment = '<div class="account-box" style="margin:16px 0">' +
+                    '<div><div class="tiny soft">' + esc(deposit.methodName) + '</div>' +
+                    '<div class="mono" style="font-size:18px;font-weight:800">' + esc(deposit.accountNumber) + '</div>' +
+                    '<div class="tiny muted">a.n. ' + esc(deposit.accountName || '-') + '</div></div>' +
+                    '<button class="btn btn-secondary btn-sm" data-copy="' + esc(deposit.accountNumber) + '">' +
+                    '<i class="ph-bold ph-copy"></i> Salin</button></div>';
+            }
+
+            return '<div class="card">' +
+                '<div class="row-between" style="margin-bottom:14px">' +
+                '<span class="badge badge-warning"><span class="dot dot-pulse"></span> Menunggu Pembayaran</span>' +
+                '<span class="tiny mono soft">' + esc(deposit.depositId) + '</span>' +
+                '</div>' +
+
+                '<div class="center">' +
+                '<div class="tiny soft">Total yang harus dibayar</div>' +
+                '<div class="pay-amount">' + App.rupiah(deposit.payAmount) + '</div>' +
+                (deposit.uniqueCode
+                    ? '<div class="tiny muted">Termasuk kode unik ' + deposit.uniqueCode + '. Transfer tepat sampai digit terakhir.</div>'
+                    : '') +
+                '<button class="btn btn-ghost btn-sm" data-copy="' + deposit.payAmount + '" style="margin-top:6px">' +
+                '<i class="ph-bold ph-copy"></i> Salin nominal</button>' +
+                '</div>' +
+
+                payment +
+
+                (deposit.instructions
+                    ? '<div class="panel small" style="margin-bottom:14px;white-space:pre-wrap">' + esc(deposit.instructions) + '</div>'
+                    : '') +
+
+                '<div class="summary-row"><span class="muted">Saldo diterima</span><strong>' + App.rupiah(deposit.amount) + '</strong></div>' +
+                (deposit.expiresAt
+                    ? '<div class="summary-row"><span class="muted">Batas waktu</span>' +
+                      '<strong class="countdown" data-expires="' + esc(deposit.expiresAt) + '">-</strong></div>'
+                    : '') +
+
+                '<div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">' +
+                '<button class="btn" data-check="' + esc(deposit.depositId) + '"><i class="ph-bold ph-arrows-clockwise"></i> Cek Status</button>' +
+                '<button class="btn btn-secondary" data-cancel="' + esc(deposit.depositId) + '">Batalkan</button>' +
+                '</div>' +
+
+                '<p class="tiny soft center" style="margin-top:12px">' +
+                (deposit.mode === 'manual'
+                    ? 'Setelah membayar, tekan Cek Status. Admin akan mengonfirmasi dan saldo otomatis masuk.'
+                    : 'Saldo masuk otomatis setelah pembayaran terdeteksi.') +
+                '</p>' +
+                '</div>';
+        }).join('');
+
+        bindPendingActions();
+        startCountdown();
+    }
+
+    function bindPendingActions() {
+        Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (button) {
+            button.addEventListener('click', function () {
+                App.copyText(button.getAttribute('data-copy'), 'Disalin.');
+            });
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll('[data-check]'), function (button) {
+            button.addEventListener('click', async function () {
+                var restore = App.loadingButton(button, 'Memeriksa...');
+                try {
+                    var result = await App.api.get('/api/deposit/check?deposit_id=' + encodeURIComponent(button.getAttribute('data-check')));
+                    var status = result.data && result.data.status;
+                    if (status === 'success') {
+                        App.toast('Pembayaran diterima. Saldo sudah bertambah.', 'success');
+                        setTimeout(function () { location.href = '/dashboard'; }, 1400);
+                        return;
+                    }
+                    App.toast(result.message || 'Pembayaran belum diterima.', status === 'pending' ? 'warning' : 'info');
+                    if (status !== 'pending') loadPending();
+                } catch (error) {
+                    App.toast(error.message, 'error');
+                } finally {
+                    restore();
+                }
+            });
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll('[data-cancel]'), function (button) {
+            button.addEventListener('click', async function () {
+                if (!confirm('Batalkan tagihan ini?')) return;
+                var restore = App.loadingButton(button, 'Membatalkan...');
+                try {
+                    await App.api.post('/api/deposit/cancel?deposit_id=' + encodeURIComponent(button.getAttribute('data-cancel')));
+                    App.toast('Tagihan dibatalkan.', 'success');
+                    loadPending();
+                    loadHistory();
+                } catch (error) {
+                    App.toast(error.message, 'error');
+                    restore();
+                }
+            });
+        });
+    }
+
+    function startCountdown() {
+        var elements = document.querySelectorAll('.countdown[data-expires]');
+        if (!elements.length) return;
+
+        var tick = function () {
+            Array.prototype.forEach.call(elements, function (el) {
+                var remaining = new Date(el.getAttribute('data-expires')).getTime() - Date.now();
+                if (remaining <= 0) {
+                    el.textContent = 'Kedaluwarsa';
+                    el.style.color = 'var(--danger)';
+                    return;
+                }
+                var minutes = Math.floor(remaining / 60000);
+                var seconds = Math.floor((remaining % 60000) / 1000);
+                el.textContent = minutes + ':' + String(seconds).padStart(2, '0');
+            });
+        };
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+    }
+
+    /* ---------------------------- Riwayat ------------------------------ */
+    var STATUS_BADGE = {
+        success: ['badge-success', 'Berhasil'],
+        pending: ['badge-warning', 'Menunggu'],
+        canceled: ['badge', 'Dibatalkan'],
+        rejected: ['badge-danger', 'Ditolak'],
+        failed: ['badge-danger', 'Gagal']
+    };
+
+    async function loadHistory() {
+        var container = document.getElementById('historyList');
+        try {
+            var result = await App.api.get('/api/deposit/history?limit=25');
+            var items = result.data || [];
+
+            if (!items.length) {
+                container.innerHTML = '<div class="card empty-state"><i class="ph ph-receipt"></i>' +
+                    '<p class="small">Belum ada riwayat top up.</p></div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="table-wrap"><table><thead><tr>' +
+                '<th>Tanggal</th><th>Metode</th><th>Nominal</th><th>Status</th>' +
+                '</tr></thead><tbody>' +
+                items.map(function (item) {
+                    var badge = STATUS_BADGE[item.status] || ['badge', item.status];
+                    return '<tr>' +
+                        '<td class="small">' + App.formatDate(item.createdAt, true) + '</td>' +
+                        '<td class="small">' + esc(item.methodName || item.method) + '</td>' +
+                        '<td class="small"><strong>' + App.rupiah(item.amount) + '</strong></td>' +
+                        '<td><span class="badge ' + badge[0] + '">' + badge[1] + '</span></td>' +
+                        '</tr>';
+                }).join('') +
+                '</tbody></table></div>';
+        } catch (error) {
+            container.innerHTML = '<div class="card empty-state"><p class="small">' + esc(error.message) + '</p></div>';
+        }
+    }
+
+    document.getElementById('refreshHistory').addEventListener('click', function () {
+        loadHistory();
+        loadPending();
+        loadBalance();
+    });
+
+    loadBalance();
+    loadMethods();
+    loadPending();
+    loadHistory();
+});
+</script>
 </body>
 </html>

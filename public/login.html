@@ -1,75 +1,166 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KilatOTP - Login</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f8fc">
+<title>Masuk — KilatOTP</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script>
+(function(){try{var t=localStorage.getItem('kilatotp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+    .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px 18px; }
+    .auth-card { width: 100%; max-width: 420px; }
+    .auth-head { text-align: center; margin-bottom: 26px; }
+    .auth-head .brand { justify-content: center; margin-bottom: 18px; }
+    .auth-head h1 { font-size: 26px; margin-bottom: 6px; }
+    .auth-head p { color: var(--text-muted); font-size: 14px; }
+    .auth-top { position: absolute; top: 18px; right: 18px; }
+    .pw-wrap { position: relative; }
+    .pw-toggle {
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+        width: 34px; height: 34px; border: none; background: none; cursor: pointer;
+        color: var(--text-soft); display: grid; place-items: center; font-size: 18px; border-radius: 8px;
+    }
+    .pw-toggle:hover { color: var(--text); background: var(--surface-2); }
+    .pw-wrap input { padding-right: 44px; }
+    .alert {
+        display: none; gap: 9px; align-items: flex-start;
+        padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 18px;
+        background: var(--danger-soft); color: var(--danger); font-size: 13px; font-weight: 600;
+    }
+    .alert.show { display: flex; }
+</style>
 </head>
-<body style="display: flex; align-items: center; justify-content: center;">
+<body>
 
-    <div class="container" style="width: 100%;">
-        <div class="liquid-glass" style="padding: 30px; text-align: center;">
-            <h1 style="margin-bottom: 25px;">Masuk</h1>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <input type="text" id="username" placeholder="Username" required>
+<div class="auth-top">
+    <button class="theme-toggle" data-theme-toggle type="button">
+        <i class="ph-bold ph-sun icon-light"></i>
+        <i class="ph-bold ph-moon icon-dark"></i>
+    </button>
+</div>
+
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-head">
+            <a href="/" class="brand">
+                <span class="brand-mark"><i class="ph-fill ph-lightning"></i></span>
+                <span data-site-name>KilatOTP</span>
+            </a>
+            <h1>Selamat datang kembali</h1>
+            <p>Masuk untuk melanjutkan ke dashboard Anda.</p>
+        </div>
+
+        <div class="card">
+            <div class="alert" id="alertBox"><i class="ph-fill ph-warning-circle"></i><span id="alertText"></span></div>
+
+            <form id="loginForm" novalidate>
+                <div class="field">
+                    <label for="identifier">Username atau Email</label>
+                    <input type="text" id="identifier" name="username" autocomplete="username" placeholder="mis. budi atau budi@email.com" required>
                 </div>
-                <div class="form-group">
-                    <input type="password" id="password" placeholder="Password" required>
+
+                <div class="field">
+                    <label for="password">Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Masukkan password" required>
+                        <button type="button" class="pw-toggle" data-toggle-password="password" aria-label="Tampilkan password">
+                            <i class="ph ph-eye"></i>
+                        </button>
+                    </div>
                 </div>
-                <button type="submit" class="btn">Login</button>
+
+                <button type="submit" class="btn btn-block" id="submitBtn">Masuk</button>
             </form>
 
-            <div style="margin: 20px 0; font-size: 14px; opacity: 0.6;">Atau</div>
+            <div id="googleSection" class="hidden">
+                <div class="divider-text">atau</div>
+                <a href="/api/auth/google" class="btn btn-google btn-block" id="googleBtn">
+                    <svg viewBox="0 0 48 48" aria-hidden="true">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    </svg>
+                    Masuk dengan Google
+                </a>
+            </div>
 
-            <button class="btn btn-google" onclick="window.location.href='/api/auth/google'">
-                <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" alt="Google" width="20">
-                Masuk dengan Google
-            </button>
-
-            <p style="margin-top: 20px; font-size: 14px;">
-                Belum punya akun? <a href="/register" style="color: var(--active-color);">Daftar di sini</a>
+            <p class="center small muted" style="margin-top:20px">
+                Belum punya akun? <a href="/register" style="font-weight:700">Daftar gratis</a>
             </p>
         </div>
+
+        <p class="center small muted" style="margin-top:20px">
+            <a href="/" class="muted"><i class="ph ph-arrow-left"></i> Kembali ke beranda</a>
+        </p>
     </div>
+</div>
 
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+<script src="/js/app.js"></script>
+<script>
+App.ready(function () {
+    var params = new URLSearchParams(location.search);
 
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
+    function showAlert(message) {
+        document.getElementById('alertText').textContent = message;
+        document.getElementById('alertBox').classList.add('show');
+    }
 
-                const data = await response.json();
+    // Pesan kesalahan dari alur login Google
+    if (params.get('error')) showAlert(params.get('error'));
 
-                if (data.success) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    window.location.href = '/';
-                } else {
-                    Toastify({
-                        text: data.message,
-                        style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" }
-                    }).showToast();
-                }
-            } catch (error) {
-                Toastify({
-                    text: "Koneksi ke server gagal",
-                    style: { background: "#ff3b30", color: "#fff", borderRadius: "14px" }
-                }).showToast();
-            }
+    // Sudah login: langsung ke dashboard
+    if (App.Session.token()) location.replace('/dashboard');
+
+    // Tombol Google hanya muncul bila admin sudah mengonfigurasinya
+    App.siteConfig().then(function (config) {
+        if (config.googleEnabled) document.getElementById('googleSection').classList.remove('hidden');
+        if (config.siteName) {
+            document.querySelectorAll('[data-site-name]').forEach(function (el) { el.textContent = config.siteName; });
+        }
+    });
+
+    document.querySelectorAll('[data-toggle-password]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var input = document.getElementById(button.getAttribute('data-toggle-password'));
+            var show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            button.innerHTML = show ? '<i class="ph ph-eye-slash"></i>' : '<i class="ph ph-eye"></i>';
         });
-    </script>
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+        document.getElementById('alertBox').classList.remove('show');
+
+        var username = document.getElementById('identifier').value.trim();
+        var password = document.getElementById('password').value;
+
+        if (!username || !password) {
+            showAlert('Username dan password wajib diisi.');
+            return;
+        }
+
+        var restore = App.loadingButton(document.getElementById('submitBtn'), 'Memproses...');
+        try {
+            var result = await App.api.post('/api/auth/login', { username: username, password: password });
+            App.Session.save(result.token, result.user);
+            App.toast('Login berhasil. Mengalihkan...', 'success');
+
+            // Kembali ke halaman yang tadi diminta, bila ada.
+            var next = params.get('next');
+            var safeNext = next && next.charAt(0) === '/' && next.charAt(1) !== '/' ? next : '/dashboard';
+            setTimeout(function () { location.href = safeNext; }, 600);
+        } catch (error) {
+            showAlert(error.message);
+            restore();
+        }
+    });
+});
+</script>
 </body>
 </html>

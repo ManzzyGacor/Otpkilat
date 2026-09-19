@@ -1,273 +1,320 @@
-const axios = require('axios');
-const { sendTelegramNotif } = require('../utils/telegramBot');
-const Setting = require('../models/Setting');
 const User = require('../models/User');
 const Order = require('../models/Order');
+const { getMargin } = require('../utils/settings');
+const { providerRequest, providerError, formatRupiah } = require('../utils/provider');
+const { sendTelegramNotif } = require('../utils/telegramBot');
 
-const getAxiosConfig = (endpoint, params = {}) => {
-    return {
-        method: 'GET',
-        url: `${process.env.RUMAHOTP_BASE_URL}${endpoint}`,
-        headers: {
-            'x-apikey': process.env.RUMAHOTP_API_KEY,
-            'Accept': 'application/json'
-        },
-        params: params
-    };
+// Nomor otomatis kedaluwarsa dan saldo dikembalikan setelah batas waktu ini.
+const ORDER_TTL_MINUTES = 20;
+const CANCEL_COOLDOWN_MINUTES = 2;
+
+const applyMargin = (price, margin) => Math.ceil(Number(price) + (Number(price) * margin) / 100);
+
+/**
+ * Kembalikan saldo untuk sebuah pesanan, sekali saja.
+ * Status diubah lewat satu operasi atomik; bila dokumen sudah tidak berstatus
+ * aktif berarti refund sudah pernah dilakukan dan saldo tidak ditambah lagi.
+ */
+const refundOrder = async (orderId, reason = 'canceled') => {
+    const order = await Order.findOneAndUpdate(
+        { _id: orderId, status: { $in: ['received', 'pending'] } },
+        { $set: { status: reason } },
+        { new: true }
+    );
+    if (!order) return null;
+
+    await User.findByIdAndUpdate(order.user, { $inc: { balance: order.price } });
+    return order;
 };
 
-const getMargin = async () => {
-    const setting = await Setting.findOne();
-    return setting ? setting.marginProfit : 0;
-};
+/** Kedaluwarsakan pesanan yang melewati batas waktu, lalu kembalikan saldonya. */
+const expireStaleOrders = async (userId) => {
+    const threshold = Date.now() - ORDER_TTL_MINUTES * 60 * 1000;
+    const stale = await Order.find({
+        user: userId,
+        status: { $in: ['received', 'pending'] },
+        createdAtTimestamp: { $lt: threshold }
+    }).select('_id');
 
-const formatRupiah = (angka) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+    for (const order of stale) {
+        // Berurutan dan atomik agar tidak terjadi refund ganda.
+        await refundOrder(order._id, 'expiring');
+    }
+    return stale.length;
 };
 
 exports.getServices = async (req, res) => {
     try {
-        const response = await axios(getAxiosConfig('/v2/services'));
-        res.status(200).json(response.data);
+        const data = await providerRequest('/v2/services');
+        return res.status(200).json(data);
     } catch (error) {
-        console.error("[SERVICES ERROR]", error.response ? error.response.data : error.message);
-        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+        return providerError(res, error, 'Gagal memuat daftar layanan.');
     }
 };
 
 exports.getCountries = async (req, res) => {
     try {
-        const { service_id } = req.query;
-        const response = await axios(getAxiosConfig('/v2/countries', { service_id }));
-        
-        if (response.data && response.data.success) {
+        const { service_id: serviceId } = req.query;
+        if (!serviceId) return res.status(400).json({ success: false, message: 'Layanan wajib dipilih.' });
+
+        const data = await providerRequest('/v2/countries', { service_id: serviceId });
+
+        if (data && data.success && Array.isArray(data.data)) {
             const margin = await getMargin();
-            response.data.data = response.data.data.map(country => {
-                if (country.pricelist) {
-                    country.pricelist = country.pricelist.map(priceItem => {
-                        const originalPrice = priceItem.price;
-                        const sellingPrice = Math.ceil(originalPrice + (originalPrice * margin / 100));
-                        priceItem.price = sellingPrice;
-                        priceItem.price_format = formatRupiah(sellingPrice);
-                        return priceItem;
+            data.data = data.data.map((country) => {
+                if (Array.isArray(country.pricelist)) {
+                    country.pricelist = country.pricelist.map((item) => {
+                        const sellingPrice = applyMargin(item.price, margin);
+                        return { ...item, price: sellingPrice, price_format: formatRupiah(sellingPrice) };
                     });
                 }
                 return country;
             });
         }
-        res.status(200).json(response.data);
+        return res.status(200).json(data);
     } catch (error) {
-        console.error("[COUNTRIES ERROR]", error.response ? error.response.data : error.message);
-        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+        return providerError(res, error, 'Gagal memuat daftar negara.');
     }
 };
 
 exports.getOperators = async (req, res) => {
     try {
-        const { country, provider_id } = req.query;
-        const response = await axios(getAxiosConfig('/v2/operators', { country, provider_id }));
-        res.status(200).json(response.data);
+        const { country, provider_id: providerId } = req.query;
+        const data = await providerRequest('/v2/operators', { country, provider_id: providerId });
+        return res.status(200).json(data);
     } catch (error) {
-        console.error("[OPERATORS ERROR]", error.response ? error.response.data : error.message);
-        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+        return providerError(res, error, 'Gagal memuat daftar operator.');
     }
 };
 
+/**
+ * Pesan nomor baru.
+ * Saldo dipotong dengan operasi atomik bersyarat (balance >= harga) sehingga
+ * dua permintaan bersamaan tidak bisa membuat saldo menjadi minus.
+ */
 exports.orderNumber = async (req, res) => {
     try {
-        const { number_id, provider_id, operator_id = 1 } = req.query;
-        const userId = req.user.id || req.user._id;
-
-        console.log(`[ORDER REQUEST] Mencoba pesan nomor: number_id=${number_id}, provider_id=${provider_id}, operator_id=${operator_id}`);
-
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+        const { number_id: numberId, provider_id: providerId, operator_id: operatorId = 1 } = req.query;
+        if (!numberId || !providerId) {
+            return res.status(400).json({ success: false, message: 'Data pesanan tidak lengkap.' });
         }
 
-        const response = await axios(getAxiosConfig('/v2/orders', { number_id, provider_id, operator_id }));
-        console.log(`[ORDER API RESPONSE]`, response.data);
-        
-        if (response.data && response.data.success) {
-            const data = response.data.data;
-            const originalPrice = data.price;
-            const margin = await getMargin();
-            const sellingPrice = Math.ceil(originalPrice + (originalPrice * margin / 100));
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+        if (user.balance <= 0) {
+            return res.status(400).json({ success: false, message: 'Saldo Anda kosong. Silakan top up terlebih dahulu.' });
+        }
 
-            if (user.balance < sellingPrice) {
-                console.warn(`[ORDER FAILED] Saldo user tidak cukup. Saldo: ${user.balance}, Harga: ${sellingPrice}`);
-                await axios(getAxiosConfig('/v1/orders/set_status', { order_id: data.order_id, status: 'cancel' }));
-                return res.status(400).json({ success: false, message: 'Saldo KilatOTP Anda tidak mencukupi.' });
-            }
+        const response = await providerRequest('/v2/orders', {
+            number_id: numberId,
+            provider_id: providerId,
+            operator_id: operatorId
+        });
 
-            user.balance -= sellingPrice;
-            await user.save();
+        if (!response || !response.success || !response.data) {
+            const message = (response && response.message) || 'Nomor sedang tidak tersedia. Coba layanan atau negara lain.';
+            return res.status(400).json({ success: false, message });
+        }
 
+        const data = response.data;
+        const margin = await getMargin();
+        const sellingPrice = applyMargin(data.price, margin);
+
+        const charged = await User.findOneAndUpdate(
+            { _id: user._id, balance: { $gte: sellingPrice } },
+            { $inc: { balance: -sellingPrice } },
+            { new: true }
+        );
+
+        if (!charged) {
+            // Saldo tidak cukup: batalkan nomor di provider agar tidak terbuang.
+            await providerRequest('/v1/orders/set_status', { order_id: data.order_id, status: 'cancel' }).catch(() => {});
+            return res.status(400).json({
+                success: false,
+                message: `Saldo tidak mencukupi. Dibutuhkan ${formatRupiah(sellingPrice)}.`
+            });
+        }
+
+        try {
             await Order.create({
-                user: userId,
-                orderId: data.order_id,
+                user: user._id,
+                orderId: String(data.order_id),
                 phoneNumber: data.phone_number,
                 service: data.service,
+                serviceImg: data.service_img || data.image || undefined,
                 country: data.country,
                 price: sellingPrice,
                 status: 'received',
                 createdAtTimestamp: Date.now()
             });
-
-            data.price = sellingPrice;
-            data.price_formated = formatRupiah(sellingPrice);
-
-            // NOTIFIKASI TELEGRAM (PROFIT DIHAPUS)
-            const notifMessage = `<b>Pesanan NOKOS Baru!</b>\n\nUser: @${user.username}\nID: <code>${data.order_id}</code>\nLayanan: ${data.service}\nNegara: ${data.country}\nHarga Jual: Rp${sellingPrice}\nNomor: <code>${data.phone_number}</code>`;
-            await sendTelegramNotif(notifMessage);
+        } catch (dbError) {
+            // Pencatatan gagal: kembalikan saldo agar user tidak dirugikan.
+            await User.findByIdAndUpdate(user._id, { $inc: { balance: sellingPrice } });
+            await providerRequest('/v1/orders/set_status', { order_id: data.order_id, status: 'cancel' }).catch(() => {});
+            console.error('[ORDER SAVE ERROR]', dbError);
+            return res.status(500).json({ success: false, message: 'Gagal menyimpan pesanan. Saldo Anda telah dikembalikan.' });
         }
 
-        res.status(200).json(response.data);
+        data.price = sellingPrice;
+        data.price_formated = formatRupiah(sellingPrice);
+
+        sendTelegramNotif(
+            `<b>Pesanan Nomor Baru</b>\n\nUser: @${user.username}\nID: <code>${data.order_id}</code>\n` +
+            `Layanan: ${data.service}\nNegara: ${data.country}\nHarga: ${formatRupiah(sellingPrice)}\n` +
+            `Nomor: <code>${data.phone_number}</code>`
+        ).catch(() => {});
+
+        return res.status(200).json({ success: true, data, balance: charged.balance });
     } catch (error) {
-        console.error("[ORDER ERROR MENTAH]", error.response ? error.response.data : error.message);
-        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+        if (error.response || error.statusCode) return providerError(res, error, 'Gagal memesan nomor.');
+        console.error('[ORDER ERROR]', error);
+        return res.status(500).json({ success: false, message: 'Gagal memesan nomor.' });
     }
 };
 
 exports.checkOrder = async (req, res) => {
     try {
-        const { order_id } = req.query;
-        const response = await axios(getAxiosConfig('/v1/orders/get_status', { order_id }));
-        
-        if (response.data && response.data.success && response.data.data) {
-            const d = response.data.data;
-            if (d.otp_code) {
-                await Order.findOneAndUpdate(
-                    { orderId: order_id },
-                    { 
-                        otpCode: d.otp_code, 
-                        status: d.status === 'completed' ? 'completed' : 'received' 
-                    }
-                );
+        const orderId = String(req.query.order_id || '').trim();
+        if (!orderId) return res.status(400).json({ success: false, message: 'ID pesanan wajib diisi.' });
+
+        // Pastikan pesanan memang milik user yang meminta.
+        const order = await Order.findOne({ orderId, user: req.user.id });
+        if (!order) return res.status(404).json({ success: false, message: 'Pesanan tidak ditemukan.' });
+
+        const response = await providerRequest('/v1/orders/get_status', { order_id: orderId });
+
+        if (response && response.success && response.data) {
+            const data = response.data;
+            if (data.otp_code && String(data.otp_code).trim() !== '') {
+                order.otpCode = String(data.otp_code).trim();
+                if (order.status === 'received' || order.status === 'pending') {
+                    order.status = data.status === 'completed' ? 'completed' : 'received';
+                }
+                await order.save();
             }
         }
 
-        res.status(200).json(response.data);
+        return res.status(200).json(response);
     } catch (error) {
-        console.error("[CHECK ORDER ERROR]", error.response ? error.response.data : error.message);
-        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+        return providerError(res, error, 'Gagal memeriksa status pesanan.');
     }
 };
 
 exports.setOrderStatus = async (req, res) => {
     try {
-        const { order_id, status } = req.query;
-        const userId = req.user.id || req.user._id;
+        const orderId = String(req.query.order_id || '').trim();
+        const status = String(req.query.status || '').trim();
 
-        console.log(`[SET STATUS] Order ID: ${order_id}, Status baru: ${status}`);
+        if (!orderId || !status) {
+            return res.status(400).json({ success: false, message: 'Data permintaan tidak lengkap.' });
+        }
+
+        const order = await Order.findOne({ orderId, user: req.user.id });
+        if (!order) return res.status(404).json({ success: false, message: 'Riwayat pesanan tidak ditemukan.' });
 
         if (status === 'cancel') {
-            const order = await Order.findOne({ orderId: order_id, user: userId });
-            if (!order) {
-                return res.status(404).json({ success: false, message: 'Riwayat pesanan tidak ditemukan.' });
+            if (order.status === 'canceled' || order.status === 'expiring') {
+                return res.status(409).json({ success: false, message: 'Pesanan ini sudah dibatalkan.' });
+            }
+            if (order.otpCode) {
+                return res.status(400).json({ success: false, message: 'OTP sudah diterima, pesanan tidak bisa dibatalkan.' });
             }
 
-            const currentTime = Date.now();
-            const timeDifferenceInMinutes = (currentTime - order.createdAtTimestamp) / (1000 * 60);
-
-            if (timeDifferenceInMinutes < 2) {
-                const sisaDetik = Math.ceil((2 - timeDifferenceInMinutes) * 60);
-                return res.status(400).json({ 
-                    success: false, 
-                    message: `Harap tunggu ${sisaDetik} detik lagi (jeda minimal 2 menit).` 
+            const elapsedMinutes = (Date.now() - order.createdAtTimestamp) / 60000;
+            if (elapsedMinutes < CANCEL_COOLDOWN_MINUTES) {
+                const waitSeconds = Math.ceil((CANCEL_COOLDOWN_MINUTES - elapsedMinutes) * 60);
+                return res.status(400).json({
+                    success: false,
+                    message: `Harap tunggu ${waitSeconds} detik lagi sebelum membatalkan.`
                 });
             }
 
-            const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
+            await providerRequest('/v1/orders/set_status', { order_id: orderId, status: 'cancel' }).catch((err) => {
+                console.warn('[SET STATUS] Provider menolak pembatalan:', err.message);
+            });
 
-            if (response.data && response.data.success) {
-                if (order.status !== 'canceled') {
-                    const user = await User.findById(userId);
-                    user.balance += order.price;
-                    await user.save();
-                    order.status = 'canceled';
-                    await order.save();
-                    console.log(`[ORDER CANCELLED] Saldo user direfund sebesar Rp${order.price}`);
-                }
+            const refunded = await refundOrder(order._id, 'canceled');
+            if (!refunded) {
+                return res.status(409).json({ success: false, message: 'Pesanan sudah diproses sebelumnya.' });
             }
-            return res.status(200).json(response.data);
+
+            return res.status(200).json({
+                success: true,
+                message: `Pesanan dibatalkan. Saldo ${formatRupiah(refunded.price)} dikembalikan.`
+            });
         }
 
-        // UNTUK STATUS SELESAI (DONE / COMPLETED)
-        const response = await axios(getAxiosConfig('/v1/orders/set_status', { order_id, status }));
-        
-        if (response.data && response.data.success) {
-            const updatedOrder = await Order.findOneAndUpdate(
-                { orderId: order_id }, 
-                { status: status === 'done' ? 'completed' : status },
+        if (status === 'done') {
+            const response = await providerRequest('/v1/orders/set_status', { order_id: orderId, status: 'done' });
+
+            const updated = await Order.findOneAndUpdate(
+                { _id: order._id, status: { $in: ['received', 'pending'] } },
+                { $set: { status: 'completed' } },
                 { new: true }
-            ).populate('user', 'username');
+            );
 
-            // KIRIM NOTIFIKASI TELEGRAM JIKA PESANAN SELESAI
-            if (status === 'done' && updatedOrder) {
-                const doneMsg = `<b>Pesanan NOKOS Selesai! ✅</b>\n\nUser: @${updatedOrder.user ? updatedOrder.user.username : 'User'}\nID: <code>${order_id}</code>\nLayanan: ${updatedOrder.service}\nNomor: <code>${updatedOrder.phoneNumber}</code>`;
-                await sendTelegramNotif(doneMsg);
+            if (updated) {
+                sendTelegramNotif(
+                    `<b>Pesanan Selesai ✅</b>\n\nUser: @${req.user.username}\nID: <code>${orderId}</code>\n` +
+                    `Layanan: ${updated.service}\nNomor: <code>${updated.phoneNumber}</code>`
+                ).catch(() => {});
             }
+
+            return res.status(200).json({ success: true, message: 'Pesanan ditandai selesai.', data: response ? response.data : null });
         }
 
-        res.status(200).json(response.data);
+        return res.status(400).json({ success: false, message: 'Status tidak dikenal.' });
     } catch (error) {
-        console.error("[SET STATUS ERROR]", error.response ? error.response.data : error.message);
-        res.status(500).json(error.response ? error.response.data : { success: false, error: { message: error.message } });
+        if (error.response || error.statusCode) return providerError(res, error, 'Gagal memperbarui status pesanan.');
+        console.error('[SET STATUS ERROR]', error);
+        return res.status(500).json({ success: false, message: 'Gagal memperbarui status pesanan.' });
     }
 };
 
 exports.getActiveOrder = async (req, res) => {
     try {
-        const userId = req.user.id || req.user._id;
-        const activeOrders = await Order.find({ user: userId, status: { $in: ['received', 'pending'] } }).sort({ createdAtTimestamp: -1 });
+        await expireStaleOrders(req.user.id);
+        const orders = await Order.find({
+            user: req.user.id,
+            status: { $in: ['received', 'pending'] }
+        }).sort({ createdAtTimestamp: -1 });
 
-        let validOrders = [];
-        const currentTime = Date.now();
-
-        for (let order of activeOrders) {
-            const timeDifferenceInMinutes = (currentTime - order.createdAtTimestamp) / (1000 * 60);
-            
-            if (timeDifferenceInMinutes >= 20) {
-                if (order.status !== 'canceled') {
-                    const user = await User.findById(userId);
-                    user.balance += order.price;
-                    await user.save();
-                    order.status = 'canceled';
-                    await order.save();
-                }
-            } else {
-                validOrders.push(order);
-            }
-        }
-
-        res.status(200).json({ success: true, data: validOrders });
+        return res.status(200).json({
+            success: true,
+            data: orders.map((order) => ({
+                ...order.toObject(),
+                expiresInSeconds: Math.max(
+                    0,
+                    Math.floor((order.createdAtTimestamp + ORDER_TTL_MINUTES * 60 * 1000 - Date.now()) / 1000)
+                )
+            }))
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Gagal memuat order aktif." });
+        console.error('[ACTIVE ORDER ERROR]', error);
+        return res.status(500).json({ success: false, message: 'Gagal memuat pesanan aktif.' });
     }
 };
 
 exports.getHistory = async (req, res) => {
     try {
-        const userId = req.user.id || req.user._id;
-        const orders = await Order.find({ user: userId }).sort({ createdAtTimestamp: -1 });
-        
-        const currentTime = Date.now();
-        for (let order of orders) {
-            if (order.status === 'received' || order.status === 'pending') {
-                const diffMins = (currentTime - order.createdAtTimestamp) / (1000 * 60);
-                if (diffMins >= 20) {
-                    const user = await User.findById(userId);
-                    user.balance += order.price;
-                    await user.save();
-                    order.status = 'canceled';
-                    await order.save();
-                }
-            }
-        }
+        await expireStaleOrders(req.user.id);
 
-        res.status(200).json({ success: true, data: orders });
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+
+        const [orders, total] = await Promise.all([
+            Order.find({ user: req.user.id }).sort({ createdAtTimestamp: -1 })
+                .skip((page - 1) * limit).limit(limit),
+            Order.countDocuments({ user: req.user.id })
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: orders,
+            pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) }
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Gagal memuat riwayat pesanan." });
+        console.error('[ORDER HISTORY ERROR]', error);
+        return res.status(500).json({ success: false, message: 'Gagal memuat riwayat pesanan.' });
     }
 };

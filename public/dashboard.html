@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f7f8fc">
+<title>Dashboard — KilatOTP</title>
+<link rel="stylesheet" href="/css/style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script>
+(function(){try{var t=localStorage.getItem('kilatotp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<style>
+    .balance-card {
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        border-radius: var(--radius-lg); padding: 26px; color: #fff;
+        display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between;
+    }
+    .balance-card .label { font-size: 13px; font-weight: 700; opacity: 0.9; display: flex; align-items: center; gap: 6px; }
+    .balance-card .value { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; }
+    .balance-card .btn { background: #fff; color: #4338ca; }
+    .balance-card .btn:hover { background: rgba(255,255,255,0.9); }
+
+    .quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (min-width: 620px) { .quick-grid { grid-template-columns: repeat(4, 1fr); } }
+    .quick {
+        display: flex; flex-direction: column; align-items: center; gap: 9px;
+        padding: 18px 10px; border-radius: var(--radius); text-align: center;
+        background: var(--surface); border: 1px solid var(--border);
+        color: var(--text); font-size: 13px; font-weight: 700;
+        transition: transform var(--transition), border-color var(--transition);
+    }
+    .quick:hover { transform: translateY(-3px); border-color: var(--primary); text-decoration: none; }
+    .quick i { font-size: 24px; color: var(--primary); }
+
+    .order-live {
+        border: 1px solid var(--success); border-radius: var(--radius);
+        background: var(--success-soft); padding: 18px;
+    }
+    .otp-code {
+        font-family: ui-monospace, monospace; font-size: 26px; font-weight: 800;
+        letter-spacing: 3px; color: var(--success);
+    }
+
+    .announce {
+        border-left: 3px solid var(--primary); background: var(--surface);
+        border: 1px solid var(--border); border-left: 3px solid var(--primary);
+        border-radius: var(--radius-sm); padding: 15px 17px;
+    }
+
+    .promo-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+    @media (min-width: 680px) { .promo-grid { grid-template-columns: 1fr 1fr; } }
+    .promo {
+        display: flex; gap: 14px; align-items: flex-start;
+        padding: 18px; border-radius: var(--radius);
+        border: 1px solid var(--border); background: var(--surface);
+        transition: transform var(--transition), border-color var(--transition);
+    }
+    .promo:hover { transform: translateY(-3px); border-color: var(--primary); text-decoration: none; }
+    .promo-icon { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; color: #fff; font-size: 22px; flex-shrink: 0; }
+    .promo-sewa .promo-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .promo-jadi .promo-icon { background: linear-gradient(135deg, #10b981, #0ea5e9); }
+    .promo h4 { font-size: 15px; margin-bottom: 3px; color: var(--text); }
+    .promo p { font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="container">
+        <a href="/dashboard" class="brand">
+            <span class="brand-mark"><i class="ph-fill ph-lightning"></i></span>
+            <span data-site-name>KilatOTP</span>
+        </a>
+        <div class="row" style="gap:8px">
+            <button class="theme-toggle" data-theme-toggle type="button">
+                <i class="ph-bold ph-sun icon-light"></i>
+                <i class="ph-bold ph-moon icon-dark"></i>
+            </button>
+            <a href="/profile" class="btn btn-secondary btn-icon" aria-label="Profil"><i class="ph-bold ph-user"></i></a>
+        </div>
+    </div>
+</header>
+
+<main class="container app-shell page-enter">
+
+    <!-- Sapaan -->
+    <div class="row-between" style="margin-bottom:20px">
+        <div class="row">
+            <img id="userAvatar" class="avatar avatar-md" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff" alt="">
+            <div>
+                <div class="small muted" id="greetingText">Halo</div>
+                <h3 id="userName" class="skeleton" style="min-width:140px">Memuat</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saldo -->
+    <div class="balance-card">
+        <div>
+            <div class="label"><i class="ph-fill ph-wallet"></i> Saldo Tersedia</div>
+            <div class="value" id="userBalance">Rp0</div>
+        </div>
+        <a href="/deposit" class="btn"><i class="ph-bold ph-plus"></i> Top Up Saldo</a>
+    </div>
+
+    <!-- Aksi cepat -->
+    <div class="quick-grid" style="margin-top:20px">
+        <a href="/order" class="quick"><i class="ph-fill ph-shopping-bag"></i> Pesan Nomor</a>
+        <a href="/deposit" class="quick"><i class="ph-fill ph-wallet"></i> Top Up</a>
+        <a href="/riwayat" class="quick"><i class="ph-fill ph-clock-counter-clockwise"></i> Riwayat</a>
+        <a href="/profile" class="quick"><i class="ph-fill ph-user-circle"></i> Profil</a>
+    </div>
+
+    <!-- Pengumuman -->
+    <div id="announcementList" class="stack" style="margin-top:22px"></div>
+
+    <!-- Pesanan aktif -->
+    <section style="margin-top:28px">
+        <div class="row-between" style="margin-bottom:13px">
+            <h3 style="font-size:16px">Pesanan Aktif</h3>
+            <a href="/order" class="small" style="font-weight:700">Lihat semua</a>
+        </div>
+        <div id="activeOrders">
+            <div class="card"><div class="row"><span class="spinner"></span> <span class="muted small">Memuat pesanan...</span></div></div>
+        </div>
+    </section>
+
+    <!-- Ringkasan -->
+    <section style="margin-top:28px">
+        <h3 style="font-size:16px;margin-bottom:13px">Ringkasan Akun</h3>
+        <div class="grid grid-3">
+            <div class="stat-card">
+                <div class="row-between"><div class="stat-label">Total Pesanan</div><div class="stat-icon"><i class="ph-fill ph-shopping-bag"></i></div></div>
+                <div class="stat-value" id="statOrders">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="row-between"><div class="stat-label">Berhasil</div><div class="stat-icon" style="background:var(--success-soft);color:var(--success)"><i class="ph-fill ph-check-circle"></i></div></div>
+                <div class="stat-value" id="statCompleted">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="row-between"><div class="stat-label">Total Top Up</div><div class="stat-icon" style="background:var(--info-soft);color:var(--info)"><i class="ph-fill ph-arrow-circle-up"></i></div></div>
+                <div class="stat-value" id="statDeposit">-</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Promosi mitra -->
+    <section style="margin-top:28px">
+        <h3 style="font-size:16px;margin-bottom:5px">Layanan Bot WhatsApp</h3>
+        <p class="small muted" style="margin-bottom:13px">Lengkapi kebutuhan otomasi Anda lewat layanan mitra kami.</p>
+        <div class="promo-grid">
+            <a href="https://sewa.manzzy.web.id" target="_blank" rel="noopener noreferrer" class="promo promo-sewa">
+                <div class="promo-icon"><i class="ph-fill ph-robot"></i></div>
+                <div>
+                    <h4>Sewa Bot <i class="ph-bold ph-arrow-up-right" style="font-size:13px"></i></h4>
+                    <p>Bot WhatsApp siap pakai, aktif dalam hitungan menit tanpa perlu setup teknis.</p>
+                    <p class="tiny" style="color:var(--primary);font-weight:700;margin-top:5px">sewa.manzzy.web.id</p>
+                </div>
+            </a>
+            <a href="https://varesa.mom" target="_blank" rel="noopener noreferrer" class="promo promo-jadi">
+                <div class="promo-icon"><i class="ph-fill ph-code"></i></div>
+                <div>
+                    <h4>Jadi Bot <i class="ph-bold ph-arrow-up-right" style="font-size:13px"></i></h4>
+                    <p>Punya bot WhatsApp atas nama sendiri, dengan fitur dan branding yang Anda tentukan.</p>
+                    <p class="tiny" style="color:var(--success);font-weight:700;margin-top:5px">varesa.mom</p>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <!-- Notifikasi Telegram -->
+    <section class="card" style="margin-top:28px">
+        <div class="row" style="margin-bottom:12px">
+            <div class="stat-icon" style="background:var(--info-soft);color:var(--info)"><i class="ph-fill ph-telegram-logo"></i></div>
+            <div>
+                <h4>Notifikasi Real-time</h4>
+                <p class="small muted">Terima log transaksi dan kode OTP walau situs sedang ditutup.</p>
+            </div>
+        </div>
+        <a href="#" class="btn btn-secondary btn-block" id="telegramLink" target="_blank" rel="noopener noreferrer">
+            <i class="ph-fill ph-telegram-logo"></i> Gabung Channel Telegram
+        </a>
+    </section>
+
+</main>
+
+<nav class="bottom-nav">
+    <a href="/dashboard"><i class="ph-fill ph-house"></i><span>Home</span></a>
+    <a href="/deposit"><i class="ph-bold ph-wallet"></i><span>Top Up</span></a>
+    <a href="/order"><i class="ph-bold ph-shopping-bag"></i><span>Order</span></a>
+    <a href="/riwayat"><i class="ph-bold ph-clock-counter-clockwise"></i><span>Riwayat</span></a>
+    <a href="/profile"><i class="ph-bold ph-user"></i><span>Profil</span></a>
+</nav>
+
+<script src="/js/app.js"></script>
+<script>
+App.ready(function () {
+    if (!App.Session.requireLogin()) return;
+
+    var esc = App.escapeHtml;
+
+    document.getElementById('greetingText').textContent = App.greeting();
+
+    App.siteConfig().then(function (config) {
+        if (config.siteName) {
+            document.querySelectorAll('[data-site-name]').forEach(function (el) { el.textContent = config.siteName; });
+        }
+        var telegram = document.getElementById('telegramLink');
+        if (config.supportUrl) telegram.href = config.supportUrl;
+        else telegram.classList.add('hidden');
+    });
+
+    async function loadProfile() {
+        try {
+            var result = await App.api.get('/api/user/me');
+            var user = result.data;
+            var nameEl = document.getElementById('userName');
+            nameEl.classList.remove('skeleton');
+            nameEl.textContent = user.fullName;
+            App.Motion.countUp(document.getElementById('userBalance'), user.balance, App.rupiah);
+            if (user.avatarUrl) document.getElementById('userAvatar').src = user.avatarUrl;
+        } catch (error) {
+            App.toast(error.message, 'error');
+        }
+    }
+
+    async function loadSummary() {
+        try {
+            var result = await App.api.get('/api/user/summary');
+            App.Motion.countUp(document.getElementById('statOrders'), result.data.totalOrders);
+            App.Motion.countUp(document.getElementById('statCompleted'), result.data.completedOrders);
+            App.Motion.countUp(document.getElementById('statDeposit'), result.data.totalDeposit, App.rupiah);
+        } catch (error) { /* ringkasan bersifat pelengkap */ }
+    }
+
+    async function loadAnnouncements() {
+        try {
+            var result = await App.api.get('/api/announcements');
+            var list = document.getElementById('announcementList');
+            if (!result.data || !result.data.length) { list.innerHTML = ''; return; }
+
+            list.innerHTML = result.data.map(function (item) {
+                return '<div class="announce">' +
+                    '<div class="row-between" style="margin-bottom:6px">' +
+                    '<span class="badge badge-primary"><i class="ph-fill ph-megaphone"></i> ' + esc(item.title) + '</span>' +
+                    '<span class="tiny soft">' + App.formatDate(item.createdAt) + '</span>' +
+                    '</div>' +
+                    '<p class="small" style="white-space:pre-wrap">' + esc(item.content) + '</p>' +
+                    '</div>';
+            }).join('');
+        } catch (error) { /* pengumuman opsional */ }
+    }
+
+    async function loadActiveOrders() {
+        var container = document.getElementById('activeOrders');
+        try {
+            var result = await App.api.get('/api/otp/active');
+            var orders = result.data || [];
+
+            if (!orders.length) {
+                container.innerHTML = '<div class="card empty-state">' +
+                    '<i class="ph ph-tray"></i>' +
+                    '<p class="small">Belum ada pesanan berjalan.</p>' +
+                    '<a href="/order" class="btn btn-sm" style="margin-top:12px">Pesan Nomor</a></div>';
+                return;
+            }
+
+            container.innerHTML = orders.map(function (order) {
+                var waiting = !order.otpCode;
+                return '<div class="order-live" style="margin-bottom:12px">' +
+                    '<div class="row-between" style="margin-bottom:9px">' +
+                    '<span class="badge ' + (waiting ? 'badge-warning' : 'badge-success') + '">' +
+                    (waiting ? '<span class="dot dot-pulse"></span> Menunggu OTP' : '<i class="ph-fill ph-check-circle"></i> OTP Diterima') +
+                    '</span>' +
+                    '<span class="tiny mono soft">' + esc(order.orderId) + '</span>' +
+                    '</div>' +
+                    '<div class="row-between">' +
+                    '<div>' +
+                    '<div class="small muted">' + esc(order.service) + ' &middot; ' + esc(order.country) + '</div>' +
+                    '<div class="mono" style="font-size:18px;font-weight:800">' + esc(order.phoneNumber) + '</div>' +
+                    '</div>' +
+                    (waiting ? '<span class="spinner"></span>' : '<span class="otp-code">' + esc(order.otpCode) + '</span>') +
+                    '</div>' +
+                    '<a href="/order" class="btn btn-secondary btn-sm btn-block" style="margin-top:12px">Buka Halaman Order</a>' +
+                    '</div>';
+            }).join('');
+        } catch (error) {
+            container.innerHTML = '<div class="card empty-state"><p class="small">' + esc(error.message) + '</p></div>';
+        }
+    }
+
+    App.Motion.stagger(document.querySelector('.quick-grid'), 50);
+    App.Motion.stagger(document.querySelector('.promo-grid'), 70);
+
+    loadProfile();
+    loadSummary();
+    loadAnnouncements();
+    loadActiveOrders();
+
+    // Segarkan pesanan aktif berkala, tapi berhenti saat tab tidak terlihat
+    // supaya tidak membebani server tanpa alasan.
+    setInterval(function () {
+        if (document.visibilityState === 'visible') loadActiveOrders();
+    }, 15000);
+});
+</script>
+</body>
+</html>

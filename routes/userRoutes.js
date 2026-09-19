@@ -1,29 +1,20 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const jwt = require('jsonwebtoken');
-const multer = require('multer');
+const { verifyToken } = require('../middleware/auth');
 
-// Konfigurasi Multer (simpan di memory sementara)
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024, files: 1 }
+});
 
-// Middleware Verifikasi Token Sederhana
-const verifyToken = (req, res, next) => {
-    const token = req.header('Authorization');
-    if (!token) return res.status(401).json({ success: false, message: 'Akses ditolak. Token tidak ada.' });
-    
-    try {
-        const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.SESSION_SECRET);
-        req.user = decoded.user;
-        next();
-    } catch (err) {
-        res.status(401).json({ success: false, message: 'Token tidak valid' });
-    }
-};
+router.use(verifyToken);
 
-router.get('/me', verifyToken, userController.getProfile);
-router.put('/update-name', verifyToken, userController.updateName);
-router.post('/upload-avatar', verifyToken, upload.single('avatar'), userController.uploadAvatar);
-router.get('/admin/balance', verifyToken, userController.getAdminBalance);
+router.get('/me', userController.getProfile);
+router.get('/summary', userController.getSummary);
+router.put('/profile', userController.updateProfile);
+router.put('/update-name', userController.updateName); // alias lama
+router.post('/upload-avatar', upload.single('avatar'), userController.uploadAvatar);
 
 module.exports = router;
