@@ -54,7 +54,14 @@
 
     --header-h: 64px;
     --max-w: 1160px;
-    --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    /* Satu bahasa gerak untuk seluruh situs.
+       "smooth" untuk perpindahan biasa, "spring" untuk sesuatu yang muncul. */
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-fast: 140ms;
+    --dur: 260ms;
+    --dur-slow: 420ms;
+    --transition: var(--dur-fast) var(--ease);
 
     color-scheme: light;
 }
@@ -583,3 +590,175 @@ tbody tr:hover { background: var(--surface-2); }
 }
 
 @media print { .bottom-nav, .topbar, #toastHost { display: none !important; } }
+
+/* ==========================================================================
+   Gerak & transisi
+   Satu bahasa gerak: cepat, singkat, dan selalu bisa dimatikan lewat
+   preferensi "kurangi animasi" di perangkat pengguna.
+   ========================================================================== */
+
+/* Pengguliran halus untuk tautan dalam halaman, dengan jarak aman dari topbar */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(var(--header-h) + 16px);
+}
+
+/* --- Kemunculan elemen ------------------------------------------------- */
+
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Isi halaman masuk perlahan, bukan berkedip muncul */
+.page-enter {
+    animation: riseIn var(--dur-slow) var(--ease) both;
+}
+
+/* Elemen yang muncul saat digulir mendekat */
+[data-reveal] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease);
+    will-change: opacity, transform;
+}
+[data-reveal].revealed {
+    opacity: 1;
+    transform: none;
+}
+
+/* Daftar yang muncul berurutan, bukan serentak */
+.stagger > * {
+    animation: riseIn var(--dur) var(--ease) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 45ms; }
+.stagger > *:nth-child(3) { animation-delay: 90ms; }
+.stagger > *:nth-child(4) { animation-delay: 135ms; }
+.stagger > *:nth-child(5) { animation-delay: 180ms; }
+.stagger > *:nth-child(6) { animation-delay: 225ms; }
+.stagger > *:nth-child(n+7) { animation-delay: 270ms; }
+
+/* --- Penghalusan komponen yang sudah ada -------------------------------- */
+
+.card {
+    transition:
+        border-color var(--dur) var(--ease),
+        box-shadow var(--dur) var(--ease),
+        transform var(--dur) var(--ease),
+        background-color var(--dur) var(--ease);
+}
+.card-hover:hover { transform: translateY(-4px); }
+.card-hover:active { transform: translateY(-1px); transition-duration: var(--dur-fast); }
+
+.btn {
+    position: relative;
+    overflow: hidden;
+    transition:
+        background-color var(--dur-fast) var(--ease),
+        border-color var(--dur-fast) var(--ease),
+        transform var(--dur-fast) var(--ease),
+        box-shadow var(--dur-fast) var(--ease),
+        opacity var(--dur-fast) var(--ease);
+}
+.btn:not(:disabled):hover { transform: translateY(-1px); }
+.btn:not(:disabled):active { transform: translateY(0) scale(0.985); }
+
+/* Riak sentuhan pada tombol, digerakkan oleh js bersama */
+.btn .ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    background: currentColor;
+    opacity: 0.28;
+    pointer-events: none;
+    animation: rippleOut 560ms var(--ease) forwards;
+}
+@keyframes rippleOut {
+    to { transform: scale(2.6); opacity: 0; }
+}
+
+.service, .method, .quick, .promo, .chip, .partner-card, .theme-option {
+    transition:
+        border-color var(--dur) var(--ease),
+        background-color var(--dur) var(--ease),
+        transform var(--dur) var(--ease),
+        box-shadow var(--dur) var(--ease);
+}
+.service:active, .method:active, .quick:active, .chip:active { transform: scale(0.97); }
+
+.nav-links a, .bottom-nav a, .tab {
+    transition:
+        color var(--dur-fast) var(--ease),
+        background-color var(--dur) var(--ease),
+        transform var(--dur) var(--ease);
+}
+.bottom-nav a:active { transform: scale(0.92); }
+.bottom-nav a.active { animation: popIn var(--dur) var(--ease-spring) both; }
+
+.theme-toggle { transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease); }
+.theme-toggle:active { transform: scale(0.9) rotate(-12deg); }
+
+/* Baris tabel dan kartu daftar */
+tbody tr { transition: background-color var(--dur-fast) var(--ease); }
+.history-item, .order-card, .announce {
+    transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.history-item:hover { transform: translateX(3px); }
+
+/* Input yang fokusnya terasa lembut */
+input, select, textarea {
+    transition:
+        border-color var(--dur-fast) var(--ease),
+        box-shadow var(--dur-fast) var(--ease),
+        background-color var(--dur) var(--ease);
+}
+
+/* --- Modal & toast ------------------------------------------------------ */
+
+.modal-backdrop { transition: opacity var(--dur) var(--ease); }
+.modal {
+    transform: translateY(18px) scale(0.97);
+    transition: transform var(--dur) var(--ease-spring), opacity var(--dur) var(--ease);
+    opacity: 0;
+}
+.modal-backdrop.open .modal { transform: none; opacity: 1; }
+
+.toast { animation: toastIn var(--dur) var(--ease-spring); }
+
+/* --- Pergantian tab & panel --------------------------------------------- */
+
+.panel-section.active, .tab-panel.active {
+    animation: riseIn var(--dur) var(--ease) both;
+}
+
+/* --- Angka yang berubah ------------------------------------------------- */
+
+.value-flip { animation: popIn var(--dur) var(--ease-spring); }
+
+/* --- Bilah kemajuan halaman --------------------------------------------- */
+
+#pageProgress {
+    position: fixed; top: 0; left: 0; height: 2px; width: 0;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    z-index: 1200;
+    transition: width 220ms var(--ease), opacity 260ms var(--ease);
+    pointer-events: none;
+}
+
+/* --- Hormati preferensi pengguna ---------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    [data-reveal] { opacity: 1 !important; transform: none !important; }
+    .btn .ripple { display: none; }
+    .card-hover:hover, .btn:hover, .history-item:hover { transform: none !important; }
+}

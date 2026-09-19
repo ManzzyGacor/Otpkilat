@@ -72,7 +72,7 @@
     </div>
 </header>
 
-<main class="container app-shell">
+<main class="container app-shell page-enter">
 
     <!-- Pesanan aktif -->
     <section id="activeSection" class="hidden" style="margin-bottom:26px">
@@ -169,7 +169,7 @@ App.ready(function () {
     async function loadBalance() {
         try {
             var result = await App.api.get('/api/user/me');
-            document.getElementById('headerBalance').textContent = App.rupiah(result.data.balance);
+            App.Motion.countUp(document.getElementById('headerBalance'), result.data.balance, App.rupiah);
         } catch (e) { /* diabaikan */ }
     }
 

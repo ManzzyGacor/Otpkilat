@@ -49,7 +49,7 @@
     </div>
 </header>
 
-<main class="container container-narrow app-shell">
+<main class="container container-narrow app-shell page-enter">
 
     <div class="card profile-head">
         <div class="avatar-wrap" id="avatarTrigger">
@@ -183,7 +183,7 @@ App.ready(function () {
             nameEl.textContent = user.fullName;
 
             document.getElementById('displayUsername').textContent = '@' + user.username;
-            document.getElementById('displayBalance').textContent = App.rupiah(user.balance);
+            App.Motion.countUp(document.getElementById('displayBalance'), user.balance, App.rupiah);
             document.getElementById('fullName').value = user.fullName;
             document.getElementById('phoneNumber').value = user.phoneNumber || '';
             document.getElementById('emailField').value = user.email;

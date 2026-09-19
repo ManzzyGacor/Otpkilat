@@ -319,6 +319,158 @@
         }
     };
 
+
+    /* ----------------------------- Gerak --------------------------------- */
+
+    var Motion = {
+        /** Pengguna yang meminta animasi dikurangi tidak diberi gerakan tambahan. */
+        reduced: function () {
+            return global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        },
+
+        /**
+         * Tampilkan elemen saat tergulir mendekat.
+         * Memakai IntersectionObserver; bila tidak tersedia, semua langsung tampil.
+         */
+        revealOnScroll: function (root) {
+            var targets = (root || document).querySelectorAll('[data-reveal]:not(.revealed)');
+            if (!targets.length) return;
+
+            if (Motion.reduced() || !global.IntersectionObserver) {
+                Array.prototype.forEach.call(targets, function (el) { el.classList.add('revealed'); });
+                return;
+            }
+
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    // Jeda berjenjang supaya sekelompok kartu tidak muncul serentak.
+                    var delay = Number(entry.target.getAttribute('data-reveal-delay')) || 0;
+                    setTimeout(function () { entry.target.classList.add('revealed'); }, delay);
+                    observer.unobserve(entry.target);
+                });
+            }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+
+            Array.prototype.forEach.call(targets, function (el) { observer.observe(el); });
+        },
+
+        /** Beri jeda berurutan pada anak-anak sebuah wadah. */
+        stagger: function (container, step) {
+            if (!container) return;
+            var gap = step || 55;
+            Array.prototype.forEach.call(container.children, function (child, index) {
+                child.setAttribute('data-reveal', '');
+                child.setAttribute('data-reveal-delay', String(index * gap));
+            });
+            Motion.revealOnScroll(container);
+        },
+
+        /** Riak kecil di titik sentuh tombol. */
+        bindRipples: function () {
+            document.addEventListener('pointerdown', function (event) {
+                if (Motion.reduced()) return;
+                var button = event.target.closest && event.target.closest('.btn');
+                if (!button || button.disabled) return;
+
+                var rect = button.getBoundingClientRect();
+                var size = Math.max(rect.width, rect.height);
+                var ripple = document.createElement('span');
+                ripple.className = 'ripple';
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = (event.clientX - rect.left - size / 2) + 'px';
+                ripple.style.top = (event.clientY - rect.top - size / 2) + 'px';
+                button.appendChild(ripple);
+                setTimeout(function () { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 600);
+            });
+        },
+
+        /** Hitung angka naik menuju nilai akhir, misalnya saldo. */
+        countUp: function (el, to, format) {
+            if (!el) return;
+            var render = format || function (v) { return String(v); };
+            var from = Number(el.getAttribute('data-value')) || 0;
+            el.setAttribute('data-value', String(to));
+
+            if (Motion.reduced() || from === to) {
+                el.textContent = render(to);
+                return;
+            }
+
+            var duration = 620;
+            var start = performance.now();
+            var step = function (now) {
+                var progress = Math.min(1, (now - start) / duration);
+                // easeOutCubic: cepat di awal, melambat di akhir
+                var eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = render(Math.round(from + (to - from) * eased));
+                if (progress < 1) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        },
+
+        /** Tandai perubahan nilai dengan denyut singkat. */
+        flip: function (el) {
+            if (!el || Motion.reduced()) return;
+            el.classList.remove('value-flip');
+            void el.offsetWidth; // paksa ulang animasi
+            el.classList.add('value-flip');
+        },
+
+        /** Bilah tipis di atas layar saat berpindah halaman. */
+        progress: function () {
+            var bar = document.getElementById('pageProgress');
+            if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'pageProgress';
+                document.body.appendChild(bar);
+            }
+            bar.style.opacity = '1';
+            bar.style.width = '70%';
+            return function () {
+                bar.style.width = '100%';
+                setTimeout(function () { bar.style.opacity = '0'; }, 180);
+            };
+        },
+
+        /** Navigasi antar halaman dengan pudar singkat, bukan kedipan putih. */
+        bindPageTransitions: function () {
+            if (Motion.reduced()) return;
+
+            document.addEventListener('click', function (event) {
+                var link = event.target.closest && event.target.closest('a[href]');
+                if (!link) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+
+                var href = link.getAttribute('href');
+                if (!href || href.charAt(0) === '#') return;
+                if (link.target === '_blank' || link.hasAttribute('download')) return;
+
+                // Hanya tautan internal di situs yang sama
+                var url;
+                try { url = new URL(href, location.href); } catch (e) { return; }
+                if (url.origin !== location.origin) return;
+                if (url.pathname === location.pathname && url.hash) return;
+
+                event.preventDefault();
+                var done = Motion.progress();
+                document.body.style.transition = 'opacity 160ms var(--ease, ease)';
+                document.body.style.opacity = '0.35';
+                setTimeout(function () { done(); location.href = url.href; }, 150);
+            });
+
+            // Saat kembali lewat tombol back, halaman bisa tersisa pudar.
+            global.addEventListener('pageshow', function () {
+                document.body.style.opacity = '';
+            });
+        },
+
+        init: function () {
+            Motion.bindRipples();
+            Motion.bindPageTransitions();
+            Motion.revealOnScroll();
+        }
+    };
+
     /* ------------------------ Konfigurasi situs --------------------------- */
 
     var configPromise = null;
@@ -354,6 +506,7 @@
         Theme.bindToggles();
         Modal.bind();
         maintenanceBanner();
+        Motion.init();
         // Tandai menu navigasi bawah yang sesuai halaman aktif.
         var path = global.location.pathname.replace(/\/$/, '') || '/';
         Array.prototype.forEach.call(document.querySelectorAll('.bottom-nav a'), function (link) {
@@ -364,6 +517,7 @@
 
     global.App = {
         Theme: Theme,
+        Motion: Motion,
         Session: Session,
         Modal: Modal,
         api: api,

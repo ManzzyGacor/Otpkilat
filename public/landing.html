@@ -159,7 +159,7 @@
 
     <!-- Hero -->
     <section class="hero">
-        <div class="container hero-inner">
+        <div class="container hero-inner page-enter">
             <span class="eyebrow"><i class="ph-fill ph-lightning"></i> Virtual Number Platform</span>
             <h1>Nomor virtual &amp; <span class="grad">kode OTP</span> masuk dalam hitungan detik.</h1>
             <p class="hero-sub">
@@ -176,7 +176,7 @@
                 <span><i class="ph-fill ph-check-circle"></i> Dukungan 24/7</span>
             </div>
 
-            <div class="metrics">
+            <div class="metrics" data-reveal>
                 <div class="metric"><div class="metric-value">1.700+</div><div class="metric-label">Layanan</div></div>
                 <div class="metric"><div class="metric-value">180+</div><div class="metric-label">Negara</div></div>
                 <div class="metric"><div class="metric-value">&lt; 10 dtk</div><div class="metric-label">Rata-rata OTP</div></div>
@@ -186,9 +186,9 @@
     </section>
 
     <!-- Fitur -->
-    <section class="section" id="fitur">
+    <section class="section" id="fitur" data-reveal>
         <div class="container">
-            <div class="section-head">
+            <div class="section-head" data-reveal>
                 <span class="eyebrow">Fitur</span>
                 <h2>Semua yang dibutuhkan, tanpa yang tidak perlu</h2>
                 <p>Dirancang untuk pemakaian harian: cepat dipahami pengguna baru, cukup lengkap untuk yang sudah terbiasa.</p>
@@ -232,7 +232,7 @@
     <!-- Cara kerja -->
     <section class="section" id="cara-kerja" style="background: var(--surface-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
         <div class="container">
-            <div class="section-head">
+            <div class="section-head" data-reveal>
                 <span class="eyebrow">Cara Kerja</span>
                 <h2>Empat langkah, selesai</h2>
                 <p>Dari mendaftar sampai kode OTP diterima, rata-rata hanya butuh waktu di bawah satu menit.</p>
@@ -260,9 +260,9 @@
     </section>
 
     <!-- Promosi mitra -->
-    <section class="section partner-band" id="mitra">
+    <section class="section partner-band" id="mitra" data-reveal>
         <div class="container">
-            <div class="section-head">
+            <div class="section-head" data-reveal>
                 <span class="eyebrow">Ekosistem</span>
                 <h2>Butuh bot WhatsApp juga?</h2>
                 <p>Dua layanan mitra kami melengkapi kebutuhan otomasi Anda, mulai dari menyewa bot siap pakai sampai membangun bot milik sendiri.</p>
@@ -327,7 +327,7 @@
     <!-- Harga -->
     <section class="section" id="harga">
         <div class="container">
-            <div class="section-head">
+            <div class="section-head" data-reveal>
                 <span class="eyebrow">Harga</span>
                 <h2>Bayar sesuai pemakaian</h2>
                 <p>Tidak ada biaya bulanan dan tidak ada minimum pemakaian. Saldo Anda hanya terpotong saat nomor berhasil dipesan.</p>
@@ -383,7 +383,7 @@
     <!-- FAQ -->
     <section class="section" id="faq" style="background: var(--surface-2); border-top: 1px solid var(--border);">
         <div class="container container-narrow">
-            <div class="section-head">
+            <div class="section-head" data-reveal>
                 <span class="eyebrow">FAQ</span>
                 <h2>Pertanyaan yang sering muncul</h2>
             </div>
@@ -430,7 +430,7 @@
     <!-- CTA -->
     <section class="section">
         <div class="container">
-            <div class="cta-band">
+            <div class="cta-band" data-reveal>
                 <h2>Siap mencoba?</h2>
                 <p>Buat akun gratis hari ini, isi saldo mulai dari lima ribu rupiah, dan pesan nomor pertama Anda.</p>
                 <a href="/register" class="btn btn-lg">Daftar Sekarang <i class="ph-bold ph-arrow-right"></i></a>
@@ -498,6 +498,20 @@ App.ready(function () {
             target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
+
+    // Kartu muncul berurutan saat tergulir mendekat
+    document.querySelectorAll('.feature-grid, .grid-3, .grid-2').forEach(function (grid) {
+        App.Motion.stagger(grid, 60);
+    });
+
+    // Bayangan tipis pada topbar begitu halaman digulir
+    var topbar = document.querySelector('.topbar');
+    var onScroll = function () {
+        if (!topbar) return;
+        topbar.style.boxShadow = window.scrollY > 8 ? 'var(--shadow-sm)' : 'none';
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 
     // Nama situs dan tautan dukungan mengikuti pengaturan admin
     App.siteConfig().then(function (config) {

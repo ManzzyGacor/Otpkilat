@@ -82,7 +82,7 @@
     </div>
 </header>
 
-<main class="container app-shell">
+<main class="container app-shell page-enter">
 
     <!-- Sapaan -->
     <div class="row-between" style="margin-bottom:20px">
@@ -218,7 +218,7 @@ App.ready(function () {
             var nameEl = document.getElementById('userName');
             nameEl.classList.remove('skeleton');
             nameEl.textContent = user.fullName;
-            document.getElementById('userBalance').textContent = App.rupiah(user.balance);
+            App.Motion.countUp(document.getElementById('userBalance'), user.balance, App.rupiah);
             if (user.avatarUrl) document.getElementById('userAvatar').src = user.avatarUrl;
         } catch (error) {
             App.toast(error.message, 'error');
@@ -228,9 +228,9 @@ App.ready(function () {
     async function loadSummary() {
         try {
             var result = await App.api.get('/api/user/summary');
-            document.getElementById('statOrders').textContent = result.data.totalOrders;
-            document.getElementById('statCompleted').textContent = result.data.completedOrders;
-            document.getElementById('statDeposit').textContent = App.rupiah(result.data.totalDeposit);
+            App.Motion.countUp(document.getElementById('statOrders'), result.data.totalOrders);
+            App.Motion.countUp(document.getElementById('statCompleted'), result.data.completedOrders);
+            App.Motion.countUp(document.getElementById('statDeposit'), result.data.totalDeposit, App.rupiah);
         } catch (error) { /* ringkasan bersifat pelengkap */ }
     }
 
@@ -289,6 +289,9 @@ App.ready(function () {
             container.innerHTML = '<div class="card empty-state"><p class="small">' + esc(error.message) + '</p></div>';
         }
     }
+
+    App.Motion.stagger(document.querySelector('.quick-grid'), 50);
+    App.Motion.stagger(document.querySelector('.promo-grid'), 70);
 
     loadProfile();
     loadSummary();

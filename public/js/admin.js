@@ -44,12 +44,12 @@ App.ready(function () {
         try {
             var result = await App.api.get('/api/admin/stats');
             var data = result.data;
-            document.getElementById('statUsers').textContent = data.totalUsers;
+            App.Motion.countUp(document.getElementById('statUsers'), data.totalUsers);
             document.getElementById('statUsersSub').textContent = data.newUsersToday + ' baru hari ini';
-            document.getElementById('statOrders').textContent = data.totalOrders;
+            App.Motion.countUp(document.getElementById('statOrders'), data.totalOrders);
             document.getElementById('statOrdersSub').textContent = data.ordersToday + ' hari ini';
-            document.getElementById('statBalance').textContent = App.rupiah(data.totalBalanceInSystem);
-            document.getElementById('statPending').textContent = data.pendingDeposits;
+            App.Motion.countUp(document.getElementById('statBalance'), data.totalBalanceInSystem, App.rupiah);
+            App.Motion.countUp(document.getElementById('statPending'), data.pendingDeposits);
         } catch (error) {
             App.toast(error.message, 'error');
         }
@@ -147,6 +147,8 @@ App.ready(function () {
                         '</tr>';
                 }).join('') +
                 '</tbody></table></div>';
+
+            App.Motion.stagger(container.querySelector('tbody'), 28);
 
             container.querySelectorAll('[data-edit-user]').forEach(function (button) {
                 button.addEventListener('click', function () { openUserModal(button.getAttribute('data-edit-user')); });
